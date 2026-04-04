@@ -85,7 +85,7 @@ export default function KanbanColumn({
           )}
           <Badge
             variant="secondary"
-            className="h-auto text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-ink/10 dark:bg-dark-border text-muted"
+            className="h-auto text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground"
           >
             {count}
           </Badge>
