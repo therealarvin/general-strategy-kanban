@@ -93,7 +93,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
                       ? 'bg-red-100 text-red-600 dark:bg-red-950/30 dark:text-red-400'
                       : dueSoon
                         ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400'
-                        : 'bg-ink/5 text-muted dark:bg-dark-border'
+                        : 'bg-muted text-muted-foreground'
                   )}
                 >
                   <Calendar size={10} />
