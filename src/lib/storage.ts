@@ -8,6 +8,7 @@ export async function loadBoard(): Promise<Board> {
   const { data: boards, error: boardErr } = await supabase
     .from('boards')
     .select('*')
+    .order('updated_at', { ascending: false })
     .limit(1)
     .single();
 
