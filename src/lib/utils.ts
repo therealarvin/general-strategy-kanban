@@ -12,21 +12,28 @@ export function formatRelativeTime(dateStr: string): string {
 }
 
 export function formatDate(dateStr: string): string {
-  return format(new Date(dateStr), 'MMM d, yyyy');
+  // Parse as local date to avoid timezone shift (e.g. UTC midnight → previous day in US timezones)
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  return format(new Date(y, m - 1, d), 'MMM d, yyyy');
 }
 
 export function formatDateTime(dateStr: string): string {
   return format(new Date(dateStr), 'MMM d, yyyy h:mm a');
 }
 
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function isOverdue(dueDate: string | null): boolean {
   if (!dueDate) return false;
-  return isBefore(new Date(dueDate), new Date());
+  return isBefore(parseDateLocal(dueDate), new Date());
 }
 
 export function isDueSoon(dueDate: string | null): boolean {
   if (!dueDate) return false;
-  const due = new Date(dueDate);
+  const due = parseDateLocal(dueDate);
   const now = new Date();
   return isAfter(due, now) && isBefore(due, addDays(now, 3));
 }
