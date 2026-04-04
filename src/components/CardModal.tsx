@@ -131,7 +131,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               </FormLabel>
               <Select value={card.priority} onValueChange={(val) => updateField({ priority: val as Card['priority'] })}>
                 <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
-                  <SelectValue />
+                  <SelectValue>{PRIORITY_CONFIG[card.priority]?.label || card.priority}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
@@ -151,7 +151,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               </FormLabel>
               <Select value={card.assignee} onValueChange={(val) => { if (val) updateField({ assignee: val }); }}>
                 <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
-                  <SelectValue />
+                  <SelectValue>{members.find(m => m.id === card.assignee)?.name || card.assignee}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {members.map(m => (
@@ -171,7 +171,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               </FormLabel>
               <Input
                 type="date"
-                value={card.dueDate || ''}
+                value={card.dueDate ? card.dueDate.slice(0, 10) : ''}
                 onChange={e => updateField({ dueDate: e.target.value || null })}
                 className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7 w-auto"
               />

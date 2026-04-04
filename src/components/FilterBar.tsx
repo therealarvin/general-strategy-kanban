@@ -27,29 +27,27 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-1.5 text-muted">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
         <Filter size={14} />
         <span className="text-xs font-medium uppercase tracking-wider">Filters</span>
       </div>
 
       {/* Priority */}
       <Select
-        value={filters.priority || null}
-        onValueChange={(value) => onChange({ ...filters, priority: value ?? '' })}
+        value={filters.priority || '__all__'}
+        onValueChange={(value) => onChange({ ...filters, priority: value === '__all__' || !value ? '' : value })}
       >
         <SelectTrigger
           size="sm"
           className={cn(
-            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
-            'rounded-card focus-visible:border-brass'
+            'text-xs bg-muted border-border',
+            'rounded-card focus-visible:border-accent'
           )}
         >
-          <SelectValue placeholder="All Priorities" />
+          <SelectValue>{filters.priority ? PRIORITY_CONFIG[filters.priority as keyof typeof PRIORITY_CONFIG]?.label : 'All Priorities'}</SelectValue>
         </SelectTrigger>
-        <SelectContent
-          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
-        >
-          <SelectItem value={null as unknown as string}>All Priorities</SelectItem>
+        <SelectContent>
+          <SelectItem value="__all__">All Priorities</SelectItem>
           {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
             <SelectItem key={key} value={key}>{config.label}</SelectItem>
           ))}
@@ -58,22 +56,20 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
 
       {/* Label */}
       <Select
-        value={filters.label || null}
-        onValueChange={(value) => onChange({ ...filters, label: value ?? '' })}
+        value={filters.label || '__all__'}
+        onValueChange={(value) => onChange({ ...filters, label: value === '__all__' || !value ? '' : value })}
       >
         <SelectTrigger
           size="sm"
           className={cn(
-            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
-            'rounded-card focus-visible:border-brass'
+            'text-xs bg-muted border-border',
+            'rounded-card focus-visible:border-accent'
           )}
         >
-          <SelectValue placeholder="All Labels" />
+          <SelectValue>{filters.label ? DEFAULT_LABELS.find(l => l.id === filters.label)?.name : 'All Labels'}</SelectValue>
         </SelectTrigger>
-        <SelectContent
-          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
-        >
-          <SelectItem value={null as unknown as string}>All Labels</SelectItem>
+        <SelectContent>
+          <SelectItem value="__all__">All Labels</SelectItem>
           {DEFAULT_LABELS.map(label => (
             <SelectItem key={label.id} value={label.id}>{label.name}</SelectItem>
           ))}
@@ -82,22 +78,20 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
 
       {/* Assignee */}
       <Select
-        value={filters.assignee || null}
-        onValueChange={(value) => onChange({ ...filters, assignee: value ?? '' })}
+        value={filters.assignee || '__all__'}
+        onValueChange={(value) => onChange({ ...filters, assignee: value === '__all__' || !value ? '' : value })}
       >
         <SelectTrigger
           size="sm"
           className={cn(
-            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
-            'rounded-card focus-visible:border-brass'
+            'text-xs bg-muted border-border',
+            'rounded-card focus-visible:border-accent'
           )}
         >
-          <SelectValue placeholder="All Assignees" />
+          <SelectValue>{filters.assignee ? members.find(m => m.id === filters.assignee)?.name : 'All Assignees'}</SelectValue>
         </SelectTrigger>
-        <SelectContent
-          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
-        >
-          <SelectItem value={null as unknown as string}>All Assignees</SelectItem>
+        <SelectContent>
+          <SelectItem value="__all__">All Assignees</SelectItem>
           {members.map(m => (
             <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
           ))}
@@ -105,11 +99,11 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
       </Select>
 
       {/* Show Archived */}
-      <Label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer font-normal">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer font-normal">
         <Checkbox
           checked={filters.showArchived}
           onCheckedChange={(checked) => onChange({ ...filters, showArchived: checked === true })}
-          className="data-checked:bg-brass data-checked:border-brass"
+          className="data-checked:bg-accent data-checked:border-accent"
         />
         Show Archived
       </Label>
@@ -120,7 +114,7 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
           variant="ghost"
           size="xs"
           onClick={() => onChange({ search: filters.search, priority: '', label: '', assignee: '', showArchived: false })}
-          className="text-brass hover:text-ink dark:hover:text-canvas gap-1"
+          className="text-accent hover:text-foreground gap-1"
         >
           <X size={12} /> Clear
         </Button>
