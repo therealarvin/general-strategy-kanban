@@ -5,7 +5,7 @@ import { VaultEntry, VAULT_CATEGORIES } from '@/types';
 import { loadVault, saveVault, loadTheme, saveTheme } from '@/lib/storage';
 import { formatRelativeTime } from '@/lib/utils';
 import { exportBoardAsJSON } from '@/lib/utils';
-import { Shield, Plus, Search, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, Tag, ExternalLink, Moon, Sun } from 'lucide-react';
+import { Shield, Plus, Search, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, ExternalLink } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import IconMap from '@/components/IconMap';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,9 +16,10 @@ export default function VaultPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<Partial<VaultEntry>>({});
+  const [editTagInput, setEditTagInput] = useState('');
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [darkMode, setDarkMode] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // New entry form
@@ -79,6 +80,30 @@ export default function VaultPage() {
     }
   }
 
+  function startEdit(entry: VaultEntry) {
+    setEditingId(entry.id);
+    setEditDraft({ ...entry });
+    setEditTagInput('');
+    setRevealedIds(prev => new Set(prev).add(entry.id));
+  }
+
+  function saveEdit() {
+    if (!editingId || !editDraft.name || !editDraft.value) return;
+    const updated = entries.map(e =>
+      e.id === editingId
+        ? { ...e, ...editDraft, updatedAt: new Date().toISOString() } as VaultEntry
+        : e
+    );
+    update(updated);
+    setEditingId(null);
+    setEditDraft({});
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditDraft({});
+  }
+
   function toggleReveal(id: string) {
     const next = new Set(revealedIds);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -118,7 +143,7 @@ export default function VaultPage() {
         darkMode={darkMode}
         onToggleDark={toggleDark}
         onExport={() => exportBoardAsJSON({ vault: entries })}
-        onSearch={() => setShowSearch(true)}
+        onSearch={() => {}}
       />
 
       <main className="ml-56 p-6">
@@ -269,64 +294,174 @@ export default function VaultPage() {
                       key={entry.id}
                       className="p-4 bg-white dark:bg-dark-card border border-ink/10 dark:border-dark-border rounded-card hover:border-brass/30 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold">{entry.name}</h4>
-                            {entry.tags.map(tag => (
-                              <span key={tag} className="px-1.5 py-0.5 bg-brass/10 text-brass text-[9px] rounded-full font-medium">
-                                {tag}
-                              </span>
-                            ))}
+                      {editingId === entry.id ? (
+                        <div className="space-y-3 animate-fade-in">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Category</label>
+                              <select
+                                value={editDraft.category}
+                                onChange={e => setEditDraft({ ...editDraft, category: e.target.value as VaultEntry['category'] })}
+                                className="w-full text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass"
+                              >
+                                {Object.entries(VAULT_CATEGORIES).map(([key, config]) => (
+                                  <option key={key} value={key}>{config.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Name</label>
+                              <input
+                                value={editDraft.name || ''}
+                                onChange={e => setEditDraft({ ...editDraft, name: e.target.value })}
+                                className="w-full text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass"
+                              />
+                            </div>
                           </div>
-                          {entry.description && <p className="text-xs text-muted mb-2">{entry.description}</p>}
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Value / Key / URL</label>
+                            <input
+                              value={editDraft.value || ''}
+                              onChange={e => setEditDraft({ ...editDraft, value: e.target.value })}
+                              className="w-full text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass font-mono"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Description</label>
+                            <input
+                              value={editDraft.description || ''}
+                              onChange={e => setEditDraft({ ...editDraft, description: e.target.value })}
+                              className="w-full text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Tags</label>
+                            <div className="flex gap-2">
+                              <input
+                                value={editTagInput}
+                                onChange={e => setEditTagInput(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (editTagInput.trim()) {
+                                      setEditDraft({ ...editDraft, tags: [...(editDraft.tags || []), editTagInput.trim()] });
+                                      setEditTagInput('');
+                                    }
+                                  }
+                                }}
+                                placeholder="Add tag..."
+                                className="flex-1 text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (editTagInput.trim()) {
+                                    setEditDraft({ ...editDraft, tags: [...(editDraft.tags || []), editTagInput.trim()] });
+                                    setEditTagInput('');
+                                  }
+                                }}
+                                className="text-xs text-brass"
+                              >+ Add</button>
+                            </div>
+                            {(editDraft.tags || []).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {(editDraft.tags || []).map((tag, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-brass/10 text-brass text-[10px] rounded-full flex items-center gap-1">
+                                    {tag}
+                                    <button onClick={() => setEditDraft({ ...editDraft, tags: editDraft.tags?.filter((_, j) => j !== i) })}>
+                                      <X size={10} />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
-                            <code className={`text-xs bg-ink/5 dark:bg-dark px-2 py-1 rounded font-mono flex-1 ${entry.hidden && !revealedIds.has(entry.id) ? 'blur-sm select-none' : ''}`}>
-                              {entry.hidden && !revealedIds.has(entry.id)
-                                ? '••••••••••••••••••'
-                                : entry.value
-                              }
-                            </code>
+                            <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editDraft.hidden || false}
+                                onChange={e => setEditDraft({ ...editDraft, hidden: e.target.checked })}
+                              />
+                              Hidden by default
+                            </label>
                           </div>
-                          <p className="text-[10px] text-faint mt-2">Updated {formatRelativeTime(entry.updatedAt)}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {entry.hidden && (
+                          <div className="flex gap-2">
                             <button
-                              onClick={() => toggleReveal(entry.id)}
-                              className="p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border text-muted hover:text-ink dark:hover:text-canvas transition-colors"
-                              title={revealedIds.has(entry.id) ? 'Hide' : 'Reveal'}
+                              onClick={saveEdit}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-ink text-canvas dark:bg-canvas dark:text-ink rounded-card text-sm font-medium hover:opacity-80 transition-opacity"
                             >
-                              {revealedIds.has(entry.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                              <Save size={14} /> Save
                             </button>
-                          )}
-                          <button
-                            onClick={() => copyValue(entry.id, entry.value)}
-                            className={`p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border transition-colors ${copiedId === entry.id ? 'text-green-500' : 'text-muted hover:text-ink dark:hover:text-canvas'}`}
-                            title="Copy"
-                          >
-                            <Copy size={14} />
-                          </button>
-                          {entry.category === 'link' && (
-                            <a
-                              href={entry.value}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border text-muted hover:text-ink dark:hover:text-canvas transition-colors"
-                              title="Open Link"
-                            >
-                              <ExternalLink size={14} />
-                            </a>
-                          )}
-                          <button
-                            onClick={() => deleteEntry(entry.id)}
-                            className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-950/20 text-muted hover:text-red-500 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <button onClick={cancelEdit} className="text-sm text-muted">Cancel</button>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-semibold">{entry.name}</h4>
+                              {entry.tags.map(tag => (
+                                <span key={tag} className="px-1.5 py-0.5 bg-brass/10 text-brass text-[9px] rounded-full font-medium">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            {entry.description && <p className="text-xs text-muted mb-2">{entry.description}</p>}
+                            <div className="flex items-center gap-2">
+                              <code className={`text-xs bg-ink/5 dark:bg-dark px-2 py-1 rounded font-mono flex-1 ${entry.hidden && !revealedIds.has(entry.id) ? 'blur-sm select-none' : ''}`}>
+                                {entry.hidden && !revealedIds.has(entry.id)
+                                  ? '••••••••••••••••••'
+                                  : entry.value
+                                }
+                              </code>
+                            </div>
+                            <p className="text-[10px] text-faint mt-2">Updated {formatRelativeTime(entry.updatedAt)}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => startEdit(entry)}
+                              className="p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border text-muted hover:text-ink dark:hover:text-canvas transition-colors"
+                              title="Edit"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            {entry.hidden && (
+                              <button
+                                onClick={() => toggleReveal(entry.id)}
+                                className="p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border text-muted hover:text-ink dark:hover:text-canvas transition-colors"
+                                title={revealedIds.has(entry.id) ? 'Hide' : 'Reveal'}
+                              >
+                                {revealedIds.has(entry.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => copyValue(entry.id, entry.value)}
+                              className={`p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border transition-colors ${copiedId === entry.id ? 'text-green-500' : 'text-muted hover:text-ink dark:hover:text-canvas'}`}
+                              title="Copy"
+                            >
+                              <Copy size={14} />
+                            </button>
+                            {entry.category === 'link' && (
+                              <a
+                                href={entry.value}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded hover:bg-ink/5 dark:hover:bg-dark-border text-muted hover:text-ink dark:hover:text-canvas transition-colors"
+                                title="Open Link"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
+                            <button
+                              onClick={() => deleteEntry(entry.id)}
+                              className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-950/20 text-muted hover:text-red-500 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
