@@ -320,15 +320,7 @@ export default function VaultPage() {
                     {uploading && <p className="text-xs text-accent mt-2">Uploading...</p>}
                   </div>
                 </div>
-              ) : newEntry.category === 'document' ? (
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Document Content</Label>
-                  <DocumentEditor
-                    content={documentContent}
-                    onChange={setDocumentContent}
-                  />
-                </div>
-              ) : (
+              ) : newEntry.category === 'document' ? null : (
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
                   <Input
@@ -376,7 +368,7 @@ export default function VaultPage() {
                 {newEntry.category === 'file' ? (
                   <p className="text-xs text-muted-foreground">Select a file above to upload</p>
                 ) : newEntry.category === 'document' ? (
-                  <Button onClick={addDocument}><FileText size={14} /> Save Document</Button>
+                  <Button onClick={addDocument}><FileText size={14} /> Create Document</Button>
                 ) : (
                   <Button onClick={addEntry}>Save Entry</Button>
                 )}
