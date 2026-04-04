@@ -10,6 +10,7 @@ import {
   Link,
   FileText,
   Server,
+  Paperclip,
 } from 'lucide-react';
 import { ComponentProps } from 'react';
 
@@ -25,6 +26,7 @@ const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   'link': Link,
   'file-text': FileText,
   'server': Server,
+  'paperclip': Paperclip,
 };
 
 interface IconMapProps extends LucideProps {

@@ -62,7 +62,7 @@ export interface Board {
 
 export interface VaultEntry {
   id: string;
-  category: 'api-key' | 'credential' | 'link' | 'note' | 'server';
+  category: 'api-key' | 'credential' | 'link' | 'note' | 'server' | 'document' | 'file';
   name: string;
   value: string;
   description: string;
@@ -108,4 +108,6 @@ export const VAULT_CATEGORIES = {
   'link': { label: 'Link', icon: 'link' },
   'note': { label: 'Note', icon: 'file-text' },
   'server': { label: 'Server', icon: 'server' },
+  'document': { label: 'Document', icon: 'file-text' },
+  'file': { label: 'File', icon: 'paperclip' },
 };

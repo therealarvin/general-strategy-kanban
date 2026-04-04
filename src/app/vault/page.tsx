@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { VaultEntry, VAULT_CATEGORIES } from '@/types';
 import { loadVault, saveVault, loadTheme, saveTheme } from '@/lib/storage';
 import { formatRelativeTime, exportBoardAsJSON, cn } from '@/lib/utils';
-import { Shield, Plus, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, ExternalLink } from 'lucide-react';
+import { Shield, Plus, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, ExternalLink, Upload, Download, FileText } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import IconMap from '@/components/IconMap';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function VaultPage() {
   const [entries, setEntries] = useState<VaultEntry[]>([]);
@@ -38,6 +39,8 @@ export default function VaultPage() {
     tags: [],
   });
   const [tagInput, setTagInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [documentContent, setDocumentContent] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -77,6 +80,57 @@ export default function VaultPage() {
     };
     update([entry, ...entries]);
     setNewEntry({ category: 'api-key', name: '', value: '', description: '', tags: [] });
+    setTagInput('');
+    setShowAdd(false);
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !newEntry.name) return;
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${uuidv4()}.${fileExt}`;
+    const { error } = await supabase.storage.from('vault-files').upload(filePath, file);
+    if (error) {
+      console.error('Upload failed:', error.message);
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('vault-files').getPublicUrl(filePath);
+    const entry: VaultEntry = {
+      id: uuidv4(),
+      category: 'file',
+      name: newEntry.name || file.name,
+      value: urlData.publicUrl,
+      description: newEntry.description || `${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      tags: [...(newEntry.tags || []), fileExt || 'file'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      hidden: false,
+    };
+    update([entry, ...entries]);
+    setNewEntry({ category: 'api-key', name: '', value: '', description: '', tags: [] });
+    setTagInput('');
+    setShowAdd(false);
+    setUploading(false);
+  }
+
+  function addDocument() {
+    if (!newEntry.name || !documentContent.trim()) return;
+    const entry: VaultEntry = {
+      id: uuidv4(),
+      category: 'document',
+      name: newEntry.name,
+      value: documentContent,
+      description: newEntry.description || '',
+      tags: newEntry.tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      hidden: false,
+    };
+    update([entry, ...entries]);
+    setNewEntry({ category: 'api-key', name: '', value: '', description: '', tags: [] });
+    setDocumentContent('');
     setTagInput('');
     setShowAdd(false);
   }
@@ -220,15 +274,43 @@ export default function VaultPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
-                <Input
-                  value={newEntry.value}
-                  onChange={e => setNewEntry({ ...newEntry, value: e.target.value })}
-                  placeholder="sk-xxxx or https://..."
-                  className="font-mono"
-                />
-              </div>
+              {newEntry.category === 'file' ? (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">File</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent/50 transition-colors">
+                    <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">Drop a file or click to upload</p>
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      style={{ position: 'relative' }}
+                    />
+                    {uploading && <p className="text-xs text-accent mt-2">Uploading...</p>}
+                  </div>
+                </div>
+              ) : newEntry.category === 'document' ? (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Document Content</Label>
+                  <Textarea
+                    value={documentContent}
+                    onChange={e => setDocumentContent(e.target.value)}
+                    placeholder="Write your document content here..."
+                    rows={8}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
+                  <Input
+                    value={newEntry.value}
+                    onChange={e => setNewEntry({ ...newEntry, value: e.target.value })}
+                    placeholder="sk-xxxx or https://..."
+                    className="font-mono"
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Description</Label>
                 <Input
@@ -263,8 +345,14 @@ export default function VaultPage() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button onClick={addEntry}>Save Entry</Button>
-                <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
+                {newEntry.category === 'file' ? (
+                  <p className="text-xs text-muted-foreground">Select a file above to upload</p>
+                ) : newEntry.category === 'document' ? (
+                  <Button onClick={addDocument}><FileText size={14} /> Save Document</Button>
+                ) : (
+                  <Button onClick={addEntry}>Save Entry</Button>
+                )}
+                <Button variant="ghost" onClick={() => { setShowAdd(false); setDocumentContent(''); }}>Cancel</Button>
               </div>
             </CardContent>
           </Card>
@@ -377,12 +465,29 @@ export default function VaultPage() {
                                 ))}
                               </div>
                               {entry.description && <p className="text-xs text-muted-foreground mb-2">{entry.description}</p>}
-                              <code className={cn(
-                                'text-xs bg-secondary px-2 py-1 rounded font-mono block',
-                                entry.hidden && !revealedIds.has(entry.id) && 'blur-sm select-none'
-                              )}>
-                                {entry.hidden && !revealedIds.has(entry.id) ? '••••••••••••••••••' : entry.value}
-                              </code>
+                              {entry.category === 'document' ? (
+                                <div className="text-xs bg-secondary px-3 py-2 rounded font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                  {entry.value}
+                                </div>
+                              ) : entry.category === 'file' ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={entry.value}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
+                                  >
+                                    <Download size={12} /> Download file
+                                  </a>
+                                </div>
+                              ) : (
+                                <code className={cn(
+                                  'text-xs bg-secondary px-2 py-1 rounded font-mono block',
+                                  entry.hidden && !revealedIds.has(entry.id) && 'blur-sm select-none'
+                                )}>
+                                  {entry.hidden && !revealedIds.has(entry.id) ? '••••••••••••••••••' : entry.value}
+                                </code>
+                              )}
                               <p className="text-[10px] text-muted-foreground/50 mt-2">Updated {formatRelativeTime(entry.updatedAt)}</p>
                             </div>
                             <div className="flex items-center gap-0.5">
