@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Loader2, ExternalLink } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Code, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -11,8 +11,28 @@ interface FileViewerProps {
   className?: string;
 }
 
-function getFileType(filename: string): 'pdf' | 'html' | 'docx' | 'image' | 'unknown' {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
+type FileType = 'pdf' | 'html' | 'docx' | 'image' | 'unknown';
+
+function detectFileType(url: string, filename: string): FileType {
+  // Try URL extension first (most reliable)
+  try {
+    const urlPath = new URL(url).pathname;
+    const urlExt = urlPath.split('.').pop()?.toLowerCase();
+    if (urlExt) {
+      const type = extToType(urlExt);
+      if (type !== 'unknown') return type;
+    }
+  } catch {}
+
+  // Try filename - strip parenthetical size info like "(19.7 KB)"
+  const cleanName = filename.replace(/\s*\([\d.]+\s*[KMG]B\)\s*$/i, '');
+  const nameExt = cleanName.split('.').pop()?.toLowerCase();
+  if (nameExt) return extToType(nameExt);
+
+  return 'unknown';
+}
+
+function extToType(ext: string): FileType {
   if (ext === 'pdf') return 'pdf';
   if (ext === 'html' || ext === 'htm') return 'html';
   if (ext === 'docx') return 'docx';
@@ -20,19 +40,11 @@ function getFileType(filename: string): 'pdf' | 'html' | 'docx' | 'image' | 'unk
   return 'unknown';
 }
 
-function extractExtFromUrl(url: string): string {
-  try {
-    const path = new URL(url).pathname;
-    return path.split('.').pop()?.toLowerCase() || '';
-  } catch {
-    return '';
-  }
-}
-
 export default function FileViewer({ url, filename, className }: FileViewerProps) {
-  const ext = extractExtFromUrl(url) || filename.split('.').pop()?.toLowerCase() || '';
-  const fileType = getFileType(filename || `file.${ext}`);
+  const fileType = detectFileType(url, filename);
   const [docxHtml, setDocxHtml] = useState<string | null>(null);
+  const [htmlSource, setHtmlSource] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +64,13 @@ export default function FileViewer({ url, filename, className }: FileViewerProps
           setError('Failed to load document');
         })
         .finally(() => setLoading(false));
+    }
+
+    if (fileType === 'html') {
+      fetch(url)
+        .then(res => res.text())
+        .then(setHtmlSource)
+        .catch(() => setHtmlSource(null));
     }
   }, [url, fileType]);
 
@@ -88,13 +107,39 @@ export default function FileViewer({ url, filename, className }: FileViewerProps
 
     case 'html':
       return (
-        <iframe
-          src={url}
-          className={cn('w-full rounded-lg border border-border bg-white', className)}
-          style={{ minHeight: 500 }}
-          sandbox="allow-same-origin"
-          title={filename}
-        />
+        <div className={cn('flex flex-col gap-2', className)}>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={showCode ? 'ghost' : 'secondary'}
+              size="sm"
+              onClick={() => setShowCode(false)}
+              className="text-xs gap-1"
+            >
+              <Eye size={12} /> Render
+            </Button>
+            <Button
+              variant={showCode ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowCode(true)}
+              className="text-xs gap-1"
+            >
+              <Code size={12} /> Source
+            </Button>
+          </div>
+          {showCode ? (
+            <pre className="text-xs bg-secondary rounded-lg border border-border p-4 overflow-auto font-mono whitespace-pre-wrap" style={{ maxHeight: 500 }}>
+              {htmlSource || 'Loading...'}
+            </pre>
+          ) : (
+            <iframe
+              src={url}
+              className="w-full rounded-lg border border-border bg-white"
+              style={{ minHeight: 500 }}
+              sandbox="allow-same-origin"
+              title={filename}
+            />
+          )}
+        </div>
       );
 
     case 'docx':
