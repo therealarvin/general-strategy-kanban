@@ -43,6 +43,10 @@ export default function VaultPage() {
   const [tagInput, setTagInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [documentContent, setDocumentContent] = useState('');
+  const [credFields, setCredFields] = useState<{ key: string; value: string }[]>([
+    { key: 'Username', value: '' },
+    { key: 'Password', value: '' },
+  ]);
   const [docEditorEntry, setDocEditorEntry] = useState<VaultEntry | null>(null);
   const [docEditorContent, setDocEditorContent] = useState('');
   const [docEditorName, setDocEditorName] = useState('');
@@ -73,12 +77,20 @@ export default function VaultPage() {
   }
 
   function addEntry() {
-    if (!newEntry.name || !newEntry.value) return;
+    if (!newEntry.name) return;
+    let value = newEntry.value || '';
+    if (newEntry.category === 'credential') {
+      const filledFields = credFields.filter(f => f.key.trim() && f.value.trim());
+      if (filledFields.length === 0) return;
+      value = JSON.stringify(filledFields);
+    } else if (!value) {
+      return;
+    }
     const entry: VaultEntry = {
       id: uuidv4(),
       category: newEntry.category as VaultEntry['category'],
       name: newEntry.name!,
-      value: newEntry.value!,
+      value,
       description: newEntry.description || '',
       tags: newEntry.tags || [],
       createdAt: new Date().toISOString(),
@@ -87,6 +99,7 @@ export default function VaultPage() {
     };
     update([entry, ...entries]);
     setNewEntry({ category: 'api-key', name: '', value: '', description: '', tags: [] });
+    setCredFields([{ key: 'Username', value: '' }, { key: 'Password', value: '' }]);
     setTagInput('');
     setShowAdd(false);
   }
@@ -220,6 +233,14 @@ export default function VaultPage() {
     return true;
   });
 
+  function isCredentialJson(value: string): boolean {
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed); } catch { return false; }
+  }
+
+  function parseCredentialFields(value: string): { key: string; value: string }[] {
+    try { return JSON.parse(value); } catch { return [{ key: 'Value', value }]; }
+  }
+
   const groupedByCategory = Object.entries(VAULT_CATEGORIES).map(([key, config]) => ({
     key,
     ...config,
@@ -320,7 +341,55 @@ export default function VaultPage() {
                     {uploading && <p className="text-xs text-accent mt-2">Uploading...</p>}
                   </div>
                 </div>
-              ) : newEntry.category === 'document' ? null : (
+              ) : newEntry.category === 'document' ? null : newEntry.category === 'credential' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Credential Fields</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-accent"
+                      onClick={() => setCredFields([...credFields, { key: '', value: '' }])}
+                    >
+                      <Plus size={12} /> Add Field
+                    </Button>
+                  </div>
+                  {credFields.map((field, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        value={field.key}
+                        onChange={e => {
+                          const updated = [...credFields];
+                          updated[i] = { ...updated[i], key: e.target.value };
+                          setCredFields(updated);
+                        }}
+                        placeholder="Field name (e.g. Username)"
+                        className="w-1/3"
+                      />
+                      <Input
+                        value={field.value}
+                        onChange={e => {
+                          const updated = [...credFields];
+                          updated[i] = { ...updated[i], value: e.target.value };
+                          setCredFields(updated);
+                        }}
+                        placeholder="Value"
+                        className="flex-1 font-mono"
+                      />
+                      {credFields.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => setCredFields(credFields.filter((_, j) => j !== i))}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
                   <Input
@@ -416,10 +485,55 @@ export default function VaultPage() {
                                 <Input value={editDraft.name || ''} onChange={e => setEditDraft({ ...editDraft, name: e.target.value })} />
                               </div>
                             </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
-                              <Input value={editDraft.value || ''} onChange={e => setEditDraft({ ...editDraft, value: e.target.value })} className="font-mono" />
-                            </div>
+                            {editDraft.category === 'credential' && isCredentialJson(editDraft.value || '') ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Credential Fields</Label>
+                                  <Button variant="ghost" size="sm" className="text-accent" onClick={() => {
+                                    const fields = parseCredentialFields(editDraft.value || '[]');
+                                    fields.push({ key: '', value: '' });
+                                    setEditDraft({ ...editDraft, value: JSON.stringify(fields) });
+                                  }}>
+                                    <Plus size={12} /> Add Field
+                                  </Button>
+                                </div>
+                                {parseCredentialFields(editDraft.value || '[]').map((field, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <Input
+                                      value={field.key}
+                                      onChange={e => {
+                                        const fields = parseCredentialFields(editDraft.value || '[]');
+                                        fields[i] = { ...fields[i], key: e.target.value };
+                                        setEditDraft({ ...editDraft, value: JSON.stringify(fields) });
+                                      }}
+                                      placeholder="Field name"
+                                      className="w-1/3"
+                                    />
+                                    <Input
+                                      value={field.value}
+                                      onChange={e => {
+                                        const fields = parseCredentialFields(editDraft.value || '[]');
+                                        fields[i] = { ...fields[i], value: e.target.value };
+                                        setEditDraft({ ...editDraft, value: JSON.stringify(fields) });
+                                      }}
+                                      placeholder="Value"
+                                      className="flex-1 font-mono"
+                                    />
+                                    <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-destructive" onClick={() => {
+                                      const fields = parseCredentialFields(editDraft.value || '[]').filter((_, j) => j !== i);
+                                      setEditDraft({ ...editDraft, value: JSON.stringify(fields) });
+                                    }}>
+                                      <X size={14} />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Value / Key / URL</Label>
+                                <Input value={editDraft.value || ''} onChange={e => setEditDraft({ ...editDraft, value: e.target.value })} className="font-mono" />
+                              </div>
+                            )}
                             <div className="space-y-1.5">
                               <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Description</Label>
                               <Input value={editDraft.description || ''} onChange={e => setEditDraft({ ...editDraft, description: e.target.value })} />
@@ -501,6 +615,22 @@ export default function VaultPage() {
                                   >
                                     <Download size={12} /> Download file
                                   </a>
+                                </div>
+                              ) : entry.category === 'credential' && isCredentialJson(entry.value) ? (
+                                <div className={cn(
+                                  'text-xs bg-secondary rounded overflow-hidden',
+                                  entry.hidden && !revealedIds.has(entry.id) && 'blur-sm select-none'
+                                )}>
+                                  {entry.hidden && !revealedIds.has(entry.id) ? (
+                                    <div className="px-2 py-1 font-mono">••••••••••••••••••</div>
+                                  ) : (
+                                    parseCredentialFields(entry.value).map((f, i) => (
+                                      <div key={i} className="flex items-center border-b border-border/50 last:border-0">
+                                        <span className="px-2 py-1 text-muted-foreground font-medium w-28 flex-shrink-0 border-r border-border/50">{f.key}</span>
+                                        <span className="px-2 py-1 font-mono flex-1">{f.value}</span>
+                                      </div>
+                                    ))
+                                  )}
                                 </div>
                               ) : (
                                 <code className={cn(
