@@ -19,14 +19,14 @@ export default function ActivityPanel({ entries, onClear }: ActivityPanelProps) 
         <div className="flex items-center gap-2">
           <Activity size={20} className="text-brass" />
           <h2 className="font-serif text-xl font-semibold">Activity Log</h2>
-          <span className="text-xs text-faint">({entries.length})</span>
+          <span className="text-xs text-muted-foreground/60">({entries.length})</span>
         </div>
         {entries.length > 0 && (
           <Button
             variant="ghost"
             size="xs"
             onClick={onClear}
-            className="text-muted hover:text-red-500"
+            className="text-muted-foreground hover:text-red-500"
           >
             <Trash2 size={12} /> Clear
           </Button>
@@ -35,12 +35,12 @@ export default function ActivityPanel({ entries, onClear }: ActivityPanelProps) 
 
       {entries.length === 0 ? (
         <div className="py-12 text-center">
-          <Activity size={32} className="text-faint mx-auto mb-3" />
-          <p className="text-sm text-muted">No activity yet</p>
-          <p className="text-xs text-faint mt-1">Actions on the board will appear here</p>
+          <Activity size={32} className="text-muted-foreground/60 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No activity yet</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Actions on the board will appear here</p>
         </div>
       ) : (
-        <Card className="bg-white dark:bg-dark-card ring-ink/10 dark:ring-dark-border py-0">
+        <Card className="bg-card ring-border py-0">
           <CardContent className="px-4 py-0">
             {entries.slice(0, 50).map((entry, i) => (
               <div key={entry.id}>
@@ -54,19 +54,19 @@ export default function ActivityPanel({ entries, onClear }: ActivityPanelProps) 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
                       <span className="font-medium">{entry.author}</span>{' '}
-                      <span className="text-muted">{entry.action}</span>
+                      <span className="text-muted-foreground">{entry.action}</span>
                       {entry.cardTitle && (
                         <span className="font-medium"> &ldquo;{entry.cardTitle}&rdquo;</span>
                       )}
                       {entry.columnTitle && (
-                        <span className="text-muted"> in {entry.columnTitle}</span>
+                        <span className="text-muted-foreground"> in {entry.columnTitle}</span>
                       )}
                     </p>
-                    <p className="text-[10px] text-faint mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
                   </div>
                 </div>
                 {i < entries.slice(0, 50).length - 1 && (
-                  <Separator className="bg-ink/5 dark:bg-dark-border" />
+                  <Separator className="bg-border" />
                 )}
               </div>
             ))}

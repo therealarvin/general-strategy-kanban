@@ -48,14 +48,14 @@ export default function SearchModal({ columns, onSelectCard, onClose }: SearchMo
       title="Search Cards"
       description="Search across all cards, labels, and descriptions"
       className={cn(
-        'max-w-lg bg-canvas dark:bg-dark-card',
-        'border-ink/10 dark:border-dark-border',
+        'max-w-lg bg-background',
+        'border-border',
         'shadow-2xl'
       )}
     >
       <Command
         shouldFilter={false}
-        className="bg-canvas dark:bg-dark-card"
+        className="bg-background"
       >
         <CommandInput
           value={query}
@@ -64,14 +64,14 @@ export default function SearchModal({ columns, onSelectCard, onClose }: SearchMo
         />
         <CommandList className="max-h-80">
           {query && results.length === 0 && (
-            <CommandEmpty className="text-muted">
+            <CommandEmpty className="text-muted-foreground">
               No cards found for &ldquo;{query}&rdquo;
             </CommandEmpty>
           )}
 
           {!query && (
             <div className="p-6 text-center">
-              <p className="text-xs text-faint">Start typing to search across all cards</p>
+              <p className="text-xs text-muted-foreground/60">Start typing to search across all cards</p>
             </div>
           )}
 
@@ -90,11 +90,11 @@ export default function SearchModal({ columns, onSelectCard, onClose }: SearchMo
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{card.title}</p>
-                    <p className="text-xs text-muted truncate mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {card.description || 'No description'}
                     </p>
                   </div>
-                  <span className="text-[10px] text-faint flex items-center gap-1 whitespace-nowrap ml-auto">
+                  <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1 whitespace-nowrap ml-auto">
                     {columnTitle} <ArrowRight size={10} />
                   </span>
                 </CommandItem>

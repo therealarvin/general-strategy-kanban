@@ -73,11 +73,11 @@ export default function KanbanColumn({
               onChange={e => setEditTitle(e.target.value)}
               onBlur={() => { onRenameColumn(column.id, editTitle); setEditing(false); }}
               onKeyDown={e => e.key === 'Enter' && (onRenameColumn(column.id, editTitle), setEditing(false))}
-              className="h-6 text-sm font-semibold bg-transparent border-b border-brass rounded-none px-0 focus-visible:ring-0 focus-visible:border-brass"
+              className="h-6 text-sm font-semibold bg-transparent border-b border-brass rounded-none px-0 focus-visible:ring-0 focus-visible:border-accent"
             />
           ) : (
             <h3
-              className="text-xs font-semibold uppercase tracking-[0.15em] text-muted cursor-pointer hover:text-ink dark:hover:text-canvas transition-colors"
+              className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
               onDoubleClick={() => setEditing(true)}
             >
               {column.title}
@@ -103,7 +103,7 @@ export default function KanbanColumn({
             variant="ghost"
             size="icon-xs"
             onClick={() => setShowAddCard(!showAddCard)}
-            className="text-muted hover:text-ink dark:hover:text-canvas hover:bg-ink/10 dark:hover:bg-dark-border"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <Plus size={16} />
           </Button>
@@ -113,7 +113,7 @@ export default function KanbanColumn({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="text-muted hover:text-ink dark:hover:text-canvas hover:bg-ink/10 dark:hover:bg-dark-border"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
                   <MoreHorizontal size={16} />
                 </Button>
@@ -142,7 +142,7 @@ export default function KanbanColumn({
       {/* Add card form */}
       {showAddCard && (
         <div className="px-1 pb-2 animate-fade-in">
-          <Card className="gap-0 py-0 ring-ink/10 dark:ring-dark-border bg-white dark:bg-dark-card">
+          <Card className="gap-0 py-0 ring-border bg-card">
             <CardContent className="p-2 space-y-2">
               <Input
                 autoFocus
@@ -159,7 +159,7 @@ export default function KanbanColumn({
                 <Button
                   size="xs"
                   onClick={handleAddCard}
-                  className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:opacity-80"
+                  className="bg-primary text-primary-foreground hover:opacity-80"
                 >
                   Add
                 </Button>
@@ -167,7 +167,7 @@ export default function KanbanColumn({
                   variant="ghost"
                   size="xs"
                   onClick={() => { setShowAddCard(false); setNewCardTitle(''); }}
-                  className="text-muted hover:text-ink dark:hover:text-canvas"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>

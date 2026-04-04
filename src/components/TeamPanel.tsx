@@ -56,7 +56,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
           variant="ghost"
           size="xs"
           onClick={() => setAdding(!adding)}
-          className="text-brass hover:text-ink dark:hover:text-canvas"
+          className="text-brass hover:text-foreground"
         >
           <Plus size={14} /> Add Member
         </Button>
@@ -70,16 +70,16 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addMember()}
             placeholder="Name..."
-            className="flex-1 bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/30"
+            className="flex-1 bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/30"
           />
           <Button
             size="sm"
             onClick={addMember}
-            className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:bg-ink/80 dark:hover:bg-canvas/80"
+            className="bg-primary text-primary-foreground hover:bg-primary/80"
           >
             Add
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setAdding(false)} className="text-muted">
+          <Button variant="ghost" size="sm" onClick={() => setAdding(false)} className="text-muted-foreground">
             Cancel
           </Button>
         </div>
@@ -92,7 +92,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
             <Card
               key={member.id}
               size="sm"
-              className="flex-row items-center bg-white dark:bg-dark-card ring-ink/10 dark:ring-dark-border py-0"
+              className="flex-row items-center bg-card ring-border py-0"
             >
               <CardContent className="flex items-center gap-3 px-3 py-3 w-full">
                 <div
@@ -109,7 +109,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && saveName(member.id)}
-                        className="h-7 bg-transparent border-0 border-b border-brass rounded-none px-0 focus-visible:ring-0 focus-visible:border-brass"
+                        className="h-7 bg-transparent border-0 border-b border-brass rounded-none px-0 focus-visible:ring-0 focus-visible:border-accent"
                       />
                       <Button variant="ghost" size="icon-xs" onClick={() => saveName(member.id)} className="text-brass">
                         <Save size={14} />
@@ -118,7 +118,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
                   ) : (
                     <p className="text-sm font-medium">{member.name}</p>
                   )}
-                  <Badge variant="secondary" className="mt-0.5 text-[10px] text-muted bg-ink/5 dark:bg-dark-border h-4 px-1.5">
+                  <Badge variant="secondary" className="mt-0.5 text-[10px] text-muted-foreground bg-muted h-4 px-1.5">
                     {cardCount} card{cardCount !== 1 ? 's' : ''} assigned
                   </Badge>
                 </div>
@@ -127,7 +127,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
                     variant="ghost"
                     size="icon-xs"
                     onClick={() => { setEditingId(member.id); setEditName(member.name); }}
-                    className="text-faint hover:text-ink dark:hover:text-canvas"
+                    className="text-muted-foreground/60 hover:text-foreground"
                   >
                     <Edit3 size={14} />
                   </Button>
@@ -136,7 +136,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
                       variant="ghost"
                       size="icon-xs"
                       onClick={() => removeMember(member.id)}
-                      className="text-faint hover:text-red-500"
+                      className="text-muted-foreground/60 hover:text-red-500"
                     >
                       <X size={14} />
                     </Button>

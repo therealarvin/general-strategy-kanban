@@ -34,8 +34,8 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
           className={cn(
             'group cursor-pointer gap-0 py-0 transition-all duration-200',
             snapshot.isDragging
-              ? 'shadow-lg scale-[1.02] ring-brass bg-canvas dark:bg-dark-card'
-              : 'ring-ink/10 dark:ring-dark-border bg-white dark:bg-dark-card hover:ring-brass/50 hover:shadow-sm',
+              ? 'shadow-lg scale-[1.02] ring-brass bg-background'
+              : 'ring-border bg-card hover:ring-brass/50 hover:shadow-sm',
             card.archived && 'opacity-50'
           )}
         >
@@ -53,7 +53,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
                 <IconMap name={priority.icon} size={12} /> {priority.label}
               </Badge>
               {card.estimatedHours && (
-                <span className="text-[10px] text-faint flex items-center gap-0.5 ml-auto">
+                <span className="text-[10px] text-muted-foreground/60 flex items-center gap-0.5 ml-auto">
                   <Clock size={10} /> {card.estimatedHours}h
                 </span>
               )}
@@ -78,7 +78,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
 
             {/* Description preview */}
             {card.description && (
-              <p className="text-xs text-muted line-clamp-2 mb-2">{card.description}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{card.description}</p>
             )}
 
             {/* Footer meta */}
@@ -105,7 +105,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
               {card.checklist.length > 0 && (
                 <span className={cn(
                   'flex items-center gap-1 text-[10px] font-medium',
-                  checkProgress.percent === 100 ? 'text-green-600' : 'text-muted'
+                  checkProgress.percent === 100 ? 'text-green-600' : 'text-muted-foreground'
                 )}>
                   <CheckSquare size={10} />
                   {checkProgress.done}/{checkProgress.total}
@@ -114,7 +114,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
 
               {/* Comments */}
               {card.comments.length > 0 && (
-                <span className="flex items-center gap-1 text-[10px] text-muted">
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   <MessageSquare size={10} />
                   {card.comments.length}
                 </span>
@@ -122,7 +122,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
 
               {/* Attachments */}
               {card.attachments.length > 0 && (
-                <span className="flex items-center gap-1 text-[10px] text-muted">
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   <Paperclip size={10} />
                   {card.attachments.length}
                 </span>

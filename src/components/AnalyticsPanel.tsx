@@ -44,9 +44,9 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
                 <div key={col.name} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium">{col.name}</span>
-                    <span className="text-muted">{col.count}</span>
+                    <span className="text-muted-foreground">{col.count}</span>
                   </div>
-                  <div className="w-full h-2 bg-ink/10 dark:bg-dark-border rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brass rounded-full transition-all duration-500"
                       style={{ width: `${percent}%` }}
@@ -69,7 +69,7 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
               <Card
                 key={key}
                 size="sm"
-                className="flex-row items-center gap-3 bg-white dark:bg-dark-card ring-ink/10 dark:ring-dark-border"
+                className="flex-row items-center gap-3 bg-card ring-border"
               >
                 <CardContent className="flex items-center gap-3 px-3 py-0">
                   <div
@@ -80,7 +80,7 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
                   </div>
                   <div>
                     <p className="text-lg font-serif font-semibold">{count}</p>
-                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-muted border-0 px-0 h-auto font-normal">
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-muted-foreground border-0 px-0 h-auto font-normal">
                       {config.label}
                     </Badge>
                   </div>
@@ -98,7 +98,7 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
             <TrendingUp size={14} className="text-brass" />
             <span className="text-xs font-semibold uppercase tracking-wider text-brass">Insight</span>
           </div>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {stats.overdue > 0
               ? `You have ${stats.overdue} overdue card${stats.overdue > 1 ? 's' : ''}. Consider re-prioritizing or moving them to the backlog.`
               : stats.totalCards === 0
@@ -122,14 +122,14 @@ function StatCard({ label, value, icon, variant = 'default' }: {
     <Card
       size="sm"
       className={cn(
-        'bg-white dark:bg-dark-card',
-        variant === 'default' && 'ring-ink/10 dark:ring-dark-border',
+        'bg-card',
+        variant === 'default' && 'ring-border',
         variant === 'danger' && 'ring-red-200 dark:ring-red-900/30 bg-red-50/50 dark:bg-red-950/10',
         variant === 'warning' && 'ring-yellow-200 dark:ring-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-950/10',
       )}
     >
       <CardContent className="px-3 py-0">
-        <div className="flex items-center gap-2 mb-2 text-muted">
+        <div className="flex items-center gap-2 mb-2 text-muted-foreground">
           {icon}
           <span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span>
         </div>

@@ -81,7 +81,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-2xl max-h-[85vh] overflow-y-auto bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border rounded-card p-0"
+        className="sm:max-w-2xl max-h-[85vh] overflow-y-auto bg-background border-border rounded-card p-0"
       >
         {/* Priority bar */}
         <div className="h-2 rounded-t-card" style={{ background: PRIORITY_CONFIG[card.priority].color }} />
@@ -101,7 +101,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                   onKeyDown={e => e.key === 'Enter' && (updateField({ title }), setEditingTitle(false))}
                   className={cn(
                     "text-xl font-serif font-semibold bg-transparent border-b-2 border-brass",
-                    "rounded-none border-x-0 border-t-0 px-0 h-auto focus-visible:ring-0 focus-visible:border-brass"
+                    "rounded-none border-x-0 border-t-0 px-0 h-auto focus-visible:ring-0 focus-visible:border-accent"
                   )}
                 />
               ) : (
@@ -112,10 +112,10 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                   {card.title}
                 </h2>
               )}
-              <p className="text-xs text-faint mt-1">Created {formatRelativeTime(card.createdAt)}</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Created {formatRelativeTime(card.createdAt)}</p>
             </div>
             <Button variant="ghost" size="icon-sm" onClick={onClose}>
-              <X size={18} className="text-muted" />
+              <X size={18} className="text-muted-foreground" />
             </Button>
           </div>
 
@@ -130,7 +130,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 <Flag size={10} /> Priority
               </FormLabel>
               <Select value={card.priority} onValueChange={(val) => updateField({ priority: val as Card['priority'] })}>
-                <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
+                <SelectTrigger size="sm" className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50">
                   <SelectValue>{PRIORITY_CONFIG[card.priority]?.label || card.priority}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +150,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 <User size={10} /> Assignee
               </FormLabel>
               <Select value={card.assignee} onValueChange={(val) => { if (val) updateField({ assignee: val }); }}>
-                <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
+                <SelectTrigger size="sm" className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50">
                   <SelectValue>{members.find(m => m.id === card.assignee)?.name || card.assignee}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +173,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 type="date"
                 value={card.dueDate ? card.dueDate.slice(0, 10) : ''}
                 onChange={e => updateField({ dueDate: e.target.value || null })}
-                className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7 w-auto"
+                className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50 h-7 w-auto"
               />
             </div>
 
@@ -191,12 +191,12 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 step={0.5}
                 value={card.estimatedHours || ''}
                 onChange={e => updateField({ estimatedHours: parseFloat(e.target.value) || undefined })}
-                className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7 w-20"
+                className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50 h-7 w-20"
               />
             </div>
           </div>
 
-          <Separator className="bg-ink/10 dark:bg-dark-border" />
+          <Separator className="bg-border" />
 
           {/* Labels */}
           <div className="space-y-2">
@@ -211,7 +211,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 variant="link"
                 size="xs"
                 onClick={() => setShowLabelPicker(!showLabelPicker)}
-                className="text-xs text-brass hover:text-ink dark:hover:text-canvas"
+                className="text-xs text-brass hover:text-foreground"
               >
                 {showLabelPicker ? 'Done' : '+ Add'}
               </Button>
@@ -226,10 +226,10 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                   {label.name}
                 </Badge>
               ))}
-              {card.labels.length === 0 && <span className="text-xs text-faint">No labels</span>}
+              {card.labels.length === 0 && <span className="text-xs text-muted-foreground/60">No labels</span>}
             </div>
             {showLabelPicker && (
-              <div className="flex flex-wrap gap-1.5 p-3 bg-ink/5 dark:bg-dark rounded-card animate-fade-in">
+              <div className="flex flex-wrap gap-1.5 p-3 bg-muted rounded-card animate-fade-in">
                 {DEFAULT_LABELS.map(label => {
                   const active = card.labels.some(l => l.id === label.id);
                   return (
@@ -238,7 +238,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                       onClick={() => toggleLabel(label)}
                       className={cn(
                         "px-2.5 py-1 rounded text-xs font-medium transition-all text-white",
-                        active ? 'ring-2 ring-offset-1 ring-ink/30' : 'opacity-60 hover:opacity-100'
+                        active ? 'ring-2 ring-offset-1 ring-border' : 'opacity-60 hover:opacity-100'
                       )}
                       style={{ background: label.color }}
                     >
@@ -250,7 +250,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
             )}
           </div>
 
-          <Separator className="bg-ink/10 dark:bg-dark-border" />
+          <Separator className="bg-border" />
 
           {/* Description */}
           <div className="space-y-2">
@@ -263,11 +263,11 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               onBlur={() => updateField({ description })}
               rows={3}
               placeholder="Add a description..."
-              className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 resize-none"
+              className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50 resize-none"
             />
           </div>
 
-          <Separator className="bg-ink/10 dark:bg-dark-border" />
+          <Separator className="bg-border" />
 
           {/* Checklist */}
           <div className="space-y-2">
@@ -278,12 +278,12 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               )}>
                 <CheckSquare size={10} /> Checklist
                 {card.checklist.length > 0 && (
-                  <span className="text-faint ml-1">({checkProgress.done}/{checkProgress.total})</span>
+                  <span className="text-muted-foreground/60 ml-1">({checkProgress.done}/{checkProgress.total})</span>
                 )}
               </FormLabel>
             </div>
             {card.checklist.length > 0 && (
-              <div className="w-full h-1.5 bg-ink/10 dark:bg-dark-border rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brass transition-all duration-300 rounded-full"
                   style={{ width: `${checkProgress.percent}%` }}
@@ -298,15 +298,15 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                     onCheckedChange={() => toggleCheckItem(item.id)}
                     className={cn(
                       "data-checked:bg-brass data-checked:border-brass",
-                      "border-ink/20 dark:border-dark-border"
+                      "border-border"
                     )}
                   />
-                  <span className={cn("text-sm flex-1", item.completed && "line-through text-faint")}>
+                  <span className={cn("text-sm flex-1", item.completed && "line-through text-muted-foreground/60")}>
                     {item.text}
                   </span>
                   <button
                     onClick={() => removeCheckItem(item.id)}
-                    className="opacity-0 group-hover:opacity-100 text-faint hover:text-red-500 transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-red-500 transition-all"
                   >
                     <X size={14} />
                   </button>
@@ -319,19 +319,19 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 onChange={e => setNewCheckItem(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCheckItem()}
                 placeholder="Add item..."
-                className="flex-1 text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7"
+                className="flex-1 text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50 h-7"
               />
               <Button
                 onClick={addCheckItem}
                 size="sm"
-                className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:opacity-80"
+                className="bg-primary text-primary-foreground hover:opacity-80"
               >
                 <Plus size={14} />
               </Button>
             </div>
           </div>
 
-          <Separator className="bg-ink/10 dark:bg-dark-border" />
+          <Separator className="bg-border" />
 
           {/* Comments */}
           <div className="space-y-2">
@@ -343,7 +343,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
             </FormLabel>
             <div className="space-y-2">
               {card.comments.map(comment => (
-                <div key={comment.id} className="p-3 bg-ink/5 dark:bg-dark rounded-card animate-fade-in">
+                <div key={comment.id} className="p-3 bg-muted rounded-card animate-fade-in">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-5 h-5 rounded-full bg-brass flex items-center justify-center">
                       <span className="text-[9px] text-white font-semibold">
@@ -351,9 +351,9 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                       </span>
                     </div>
                     <span className="text-xs font-medium">{comment.author}</span>
-                    <span className="text-[10px] text-faint">{formatRelativeTime(comment.createdAt)}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{formatRelativeTime(comment.createdAt)}</span>
                   </div>
-                  <p className="text-sm text-muted">{comment.text}</p>
+                  <p className="text-sm text-muted-foreground">{comment.text}</p>
                 </div>
               ))}
             </div>
@@ -363,19 +363,19 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 onChange={e => setNewComment(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addComment()}
                 placeholder="Write a comment..."
-                className="flex-1 text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7"
+                className="flex-1 text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50 h-7"
               />
               <Button
                 onClick={addComment}
                 size="sm"
-                className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:opacity-80"
+                className="bg-primary text-primary-foreground hover:opacity-80"
               >
                 Send
               </Button>
             </div>
           </div>
 
-          <Separator className="bg-ink/10 dark:bg-dark-border" />
+          <Separator className="bg-border" />
 
           {/* Actions */}
           <div className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               variant="ghost"
               size="sm"
               onClick={() => updateField({ archived: !card.archived })}
-              className="text-muted hover:text-ink dark:hover:text-canvas"
+              className="text-muted-foreground hover:text-foreground"
             >
               <Archive size={14} />
               {card.archived ? 'Restore' : 'Archive'}

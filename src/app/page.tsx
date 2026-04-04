@@ -226,8 +226,8 @@ function BoardContent() {
       <main className="ml-56 flex flex-col h-screen">
         {/* Top bar */}
         <header className="flex items-center justify-between px-6 h-14 border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <h2 className="font-serif text-lg font-semibold">{board.name}</h2>
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 className="font-serif text-lg font-semibold whitespace-nowrap">{board.name}</h2>
             <Separator orientation="horizontal" className="w-12 bg-accent" />
             <Badge variant="secondary" className="text-xs font-normal">
               {board.columns.reduce((sum, c) => sum + c.cards.filter(cd => !cd.archived).length, 0)} cards

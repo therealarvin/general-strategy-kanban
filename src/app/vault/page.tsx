@@ -17,7 +17,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import dynamic from 'next/dynamic';
+
+const DocumentEditor = dynamic(() => import('@/components/DocumentEditor'), { ssr: false });
 
 export default function VaultPage() {
   const [entries, setEntries] = useState<VaultEntry[]>([]);
@@ -41,6 +44,10 @@ export default function VaultPage() {
   const [tagInput, setTagInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [documentContent, setDocumentContent] = useState('');
+  const [docEditorEntry, setDocEditorEntry] = useState<VaultEntry | null>(null);
+  const [docEditorContent, setDocEditorContent] = useState('');
+  const [docEditorName, setDocEditorName] = useState('');
+  const [docEditorDesc, setDocEditorDesc] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -165,6 +172,24 @@ export default function VaultPage() {
     setEditDraft({});
   }
 
+  function openDocEditor(entry: VaultEntry) {
+    setDocEditorEntry(entry);
+    setDocEditorContent(entry.value);
+    setDocEditorName(entry.name);
+    setDocEditorDesc(entry.description);
+  }
+
+  function saveDocEditor() {
+    if (!docEditorEntry) return;
+    const updated = entries.map(e =>
+      e.id === docEditorEntry.id
+        ? { ...e, name: docEditorName, value: docEditorContent, description: docEditorDesc, updatedAt: new Date().toISOString() }
+        : e
+    );
+    update(updated);
+    setDocEditorEntry(null);
+  }
+
   function toggleReveal(id: string) {
     const next = new Set(revealedIds);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -277,27 +302,23 @@ export default function VaultPage() {
               {newEntry.category === 'file' ? (
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">File</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent/50 transition-colors">
-                    <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-2">Drop a file or click to upload</p>
+                  <div className="relative border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent/50 transition-colors cursor-pointer">
                     <input
                       type="file"
                       onChange={handleFileUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      style={{ position: 'relative' }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
+                    <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">Drop a file or click to upload</p>
                     {uploading && <p className="text-xs text-accent mt-2">Uploading...</p>}
                   </div>
                 </div>
               ) : newEntry.category === 'document' ? (
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-[0.2em] text-accent font-semibold">Document Content</Label>
-                  <Textarea
-                    value={documentContent}
-                    onChange={e => setDocumentContent(e.target.value)}
-                    placeholder="Write your document content here..."
-                    rows={8}
-                    className="font-mono text-sm"
+                  <DocumentEditor
+                    content={documentContent}
+                    onChange={setDocumentContent}
                   />
                 </div>
               ) : (
@@ -466,9 +487,11 @@ export default function VaultPage() {
                               </div>
                               {entry.description && <p className="text-xs text-muted-foreground mb-2">{entry.description}</p>}
                               {entry.category === 'document' ? (
-                                <div className="text-xs bg-secondary px-3 py-2 rounded font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                  {entry.value}
-                                </div>
+                                <div
+                                  className="text-xs bg-secondary px-3 py-2 rounded whitespace-pre-wrap max-h-32 overflow-y-auto cursor-pointer hover:ring-1 hover:ring-accent/30 transition-all"
+                                  onClick={() => openDocEditor(entry)}
+                                  dangerouslySetInnerHTML={{ __html: entry.value || '<span class="text-muted-foreground">Click to edit document...</span>' }}
+                                />
                               ) : entry.category === 'file' ? (
                                 <div className="flex items-center gap-2">
                                   <a
@@ -493,7 +516,7 @@ export default function VaultPage() {
                             <div className="flex items-center gap-0.5">
                               <Tooltip>
                                 <TooltipTrigger>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => startEdit(entry)}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => entry.category === 'document' ? openDocEditor(entry) : startEdit(entry)}>
                                     <Edit3 size={14} />
                                   </Button>
                                 </TooltipTrigger>
@@ -554,6 +577,41 @@ export default function VaultPage() {
           </div>
         )}
       </main>
+
+      {/* Document Editor Sheet */}
+      <Sheet open={!!docEditorEntry} onOpenChange={(open) => { if (!open) setDocEditorEntry(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b border-border flex-shrink-0">
+            <SheetTitle className="sr-only">Edit Document</SheetTitle>
+            <div className="space-y-2">
+              <Input
+                value={docEditorName}
+                onChange={e => setDocEditorName(e.target.value)}
+                className="text-lg font-serif font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
+                placeholder="Document title..."
+              />
+              <Input
+                value={docEditorDesc}
+                onChange={e => setDocEditorDesc(e.target.value)}
+                className="text-xs text-muted-foreground border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
+                placeholder="Description..."
+              />
+            </div>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6">
+            <DocumentEditor
+              content={docEditorContent}
+              onChange={setDocEditorContent}
+            />
+          </div>
+          <div className="px-6 py-3 border-t border-border flex gap-2 flex-shrink-0">
+            <Button onClick={saveDocEditor}>
+              <Save size={14} /> Save Document
+            </Button>
+            <Button variant="ghost" onClick={() => setDocEditorEntry(null)}>Cancel</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
