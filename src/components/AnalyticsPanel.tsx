@@ -1,8 +1,10 @@
 'use client';
 
 import { Column, PRIORITY_CONFIG } from '@/types';
-import { getBoardStats } from '@/lib/utils';
+import { cn, getBoardStats } from '@/lib/utils';
 import { BarChart3, AlertTriangle, Clock, CheckSquare, TrendingUp } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import IconMap from './IconMap';
 
 interface AnalyticsPanelProps {
@@ -32,28 +34,30 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
       </div>
 
       {/* Column distribution */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-brass">Cards by Column</h3>
-        <div className="space-y-2">
-          {stats.byColumn.map(col => {
-            const percent = stats.totalCards > 0 ? (col.count / stats.totalCards) * 100 : 0;
-            return (
-              <div key={col.name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{col.name}</span>
-                  <span className="text-muted">{col.count}</span>
+      <Card className="border-0 ring-0 bg-transparent py-0">
+        <CardContent className="px-0 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-brass">Cards by Column</h3>
+          <div className="space-y-2">
+            {stats.byColumn.map(col => {
+              const percent = stats.totalCards > 0 ? (col.count / stats.totalCards) * 100 : 0;
+              return (
+                <div key={col.name} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium">{col.name}</span>
+                    <span className="text-muted">{col.count}</span>
+                  </div>
+                  <div className="w-full h-2 bg-ink/10 dark:bg-dark-border rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brass rounded-full transition-all duration-500"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-ink/10 dark:bg-dark-border rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brass rounded-full transition-all duration-500"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Priority breakdown */}
       <div className="space-y-3">
@@ -62,41 +66,48 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
           {Object.entries(stats.byPriority).map(([key, count]) => {
             const config = PRIORITY_CONFIG[key as keyof typeof PRIORITY_CONFIG];
             return (
-              <div
+              <Card
                 key={key}
-                className="flex items-center gap-3 p-3 rounded-card border border-ink/10 dark:border-dark-border bg-white dark:bg-dark-card"
+                size="sm"
+                className="flex-row items-center gap-3 bg-white dark:bg-dark-card ring-ink/10 dark:ring-dark-border"
               >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
-                  style={{ background: config.color }}
-                >
-                  <IconMap name={config.icon} size={16} />
-                </div>
-                <div>
-                  <p className="text-lg font-serif font-semibold">{count}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-muted">{config.label}</p>
-                </div>
-              </div>
+                <CardContent className="flex items-center gap-3 px-3 py-0">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
+                    style={{ background: config.color }}
+                  >
+                    <IconMap name={config.icon} size={16} />
+                  </div>
+                  <div>
+                    <p className="text-lg font-serif font-semibold">{count}</p>
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-muted border-0 px-0 h-auto font-normal">
+                      {config.label}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       </div>
 
       {/* Velocity hint */}
-      <div className="p-4 rounded-card border border-brass/30 bg-brass/5">
-        <div className="flex items-center gap-2 mb-1">
-          <TrendingUp size={14} className="text-brass" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-brass">Insight</span>
-        </div>
-        <p className="text-sm text-muted">
-          {stats.overdue > 0
-            ? `You have ${stats.overdue} overdue card${stats.overdue > 1 ? 's' : ''}. Consider re-prioritizing or moving them to the backlog.`
-            : stats.totalCards === 0
-            ? 'Your board is empty. Add some cards to get started.'
-            : `Looking good! ${stats.byColumn.find(c => c.name === 'Done')?.count || 0} cards completed.`
-          }
-        </p>
-      </div>
+      <Card className="bg-brass/5 ring-brass/30 py-3">
+        <CardContent className="px-4">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={14} className="text-brass" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-brass">Insight</span>
+          </div>
+          <p className="text-sm text-muted">
+            {stats.overdue > 0
+              ? `You have ${stats.overdue} overdue card${stats.overdue > 1 ? 's' : ''}. Consider re-prioritizing or moving them to the backlog.`
+              : stats.totalCards === 0
+              ? 'Your board is empty. Add some cards to get started.'
+              : `Looking good! ${stats.byColumn.find(c => c.name === 'Done')?.count || 0} cards completed.`
+            }
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -107,16 +118,23 @@ function StatCard({ label, value, icon, variant = 'default' }: {
   icon: React.ReactNode;
   variant?: 'default' | 'danger' | 'warning';
 }) {
-  const colors = {
-    default: 'border-ink/10 dark:border-dark-border',
-    danger: 'border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10',
-    warning: 'border-yellow-200 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-950/10',
-  };
-
   return (
-    <div className={`p-4 rounded-card border bg-white dark:bg-dark-card ${colors[variant]}`}>
-      <div className="flex items-center gap-2 mb-2 text-muted">{icon}<span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span></div>
-      <p className="text-2xl font-serif font-semibold">{value}</p>
-    </div>
+    <Card
+      size="sm"
+      className={cn(
+        'bg-white dark:bg-dark-card',
+        variant === 'default' && 'ring-ink/10 dark:ring-dark-border',
+        variant === 'danger' && 'ring-red-200 dark:ring-red-900/30 bg-red-50/50 dark:bg-red-950/10',
+        variant === 'warning' && 'ring-yellow-200 dark:ring-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-950/10',
+      )}
+    >
+      <CardContent className="px-3 py-0">
+        <div className="flex items-center gap-2 mb-2 text-muted">
+          {icon}
+          <span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span>
+        </div>
+        <p className="text-2xl font-serif font-semibold">{value}</p>
+      </CardContent>
+    </Card>
   );
 }

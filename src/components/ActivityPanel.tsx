@@ -3,6 +3,9 @@
 import { ActivityEntry } from '@/types';
 import { formatRelativeTime } from '@/lib/utils';
 import { Activity, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface ActivityPanelProps {
   entries: ActivityEntry[];
@@ -19,12 +22,14 @@ export default function ActivityPanel({ entries, onClear }: ActivityPanelProps) 
           <span className="text-xs text-faint">({entries.length})</span>
         </div>
         {entries.length > 0 && (
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={onClear}
-            className="flex items-center gap-1 text-xs text-muted hover:text-red-500 transition-colors"
+            className="text-muted hover:text-red-500"
           >
             <Trash2 size={12} /> Clear
-          </button>
+          </Button>
         )}
       </div>
 
@@ -35,32 +40,38 @@ export default function ActivityPanel({ entries, onClear }: ActivityPanelProps) 
           <p className="text-xs text-faint mt-1">Actions on the board will appear here</p>
         </div>
       ) : (
-        <div className="space-y-0">
-          {entries.slice(0, 50).map((entry, i) => (
-            <div
-              key={entry.id}
-              className="flex items-start gap-3 py-3 border-b border-ink/5 dark:border-dark-border last:border-0 animate-slide-in"
-              style={{ animationDelay: `${i * 30}ms` }}
-            >
-              <div className="w-6 h-6 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[9px] text-brass font-bold">{entry.author.charAt(0)}</span>
+        <Card className="bg-white dark:bg-dark-card ring-ink/10 dark:ring-dark-border py-0">
+          <CardContent className="px-4 py-0">
+            {entries.slice(0, 50).map((entry, i) => (
+              <div key={entry.id}>
+                <div
+                  className="flex items-start gap-3 py-3 animate-slide-in"
+                  style={{ animationDelay: `${i * 30}ms` }}
+                >
+                  <div className="w-6 h-6 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-[9px] text-brass font-bold">{entry.author.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">
+                      <span className="font-medium">{entry.author}</span>{' '}
+                      <span className="text-muted">{entry.action}</span>
+                      {entry.cardTitle && (
+                        <span className="font-medium"> &ldquo;{entry.cardTitle}&rdquo;</span>
+                      )}
+                      {entry.columnTitle && (
+                        <span className="text-muted"> in {entry.columnTitle}</span>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-faint mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
+                  </div>
+                </div>
+                {i < entries.slice(0, 50).length - 1 && (
+                  <Separator className="bg-ink/5 dark:bg-dark-border" />
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">
-                  <span className="font-medium">{entry.author}</span>{' '}
-                  <span className="text-muted">{entry.action}</span>
-                  {entry.cardTitle && (
-                    <span className="font-medium"> &ldquo;{entry.cardTitle}&rdquo;</span>
-                  )}
-                  {entry.columnTitle && (
-                    <span className="text-muted"> in {entry.columnTitle}</span>
-                  )}
-                </p>
-                <p className="text-[10px] text-faint mt-0.5">{formatRelativeTime(entry.timestamp)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

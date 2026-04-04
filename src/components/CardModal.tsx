@@ -2,12 +2,22 @@
 
 import { useState } from 'react';
 import {
-  X, Calendar, Tag, User, AlertTriangle, CheckSquare, MessageSquare,
-  Plus, Trash2, Archive, Clock, Flag
+  Calendar, Tag, User, CheckSquare, MessageSquare,
+  Plus, Trash2, Archive, Clock, Flag, X
 } from 'lucide-react';
 import { Card, Label, DEFAULT_LABELS, PRIORITY_CONFIG, TeamMember } from '@/types';
-import { formatDate, formatRelativeTime, getChecklistProgress } from '@/lib/utils';
+import { cn, formatRelativeTime, getChecklistProgress } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label as FormLabel } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 interface CardModalProps {
   card: Card;
@@ -68,26 +78,31 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 modal-backdrop bg-ink/40 dark:bg-black/60" onClick={onClose}>
-      <div
-        className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-canvas dark:bg-dark-card rounded-card border border-ink/10 dark:border-dark-border shadow-xl animate-scale-in"
-        onClick={e => e.stopPropagation()}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-2xl max-h-[85vh] overflow-y-auto bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border rounded-card p-0"
       >
-        {/* Cover / Priority bar */}
-        <div className={`h-2 rounded-t-card`} style={{ background: PRIORITY_CONFIG[card.priority].color }} />
+        {/* Priority bar */}
+        <div className="h-2 rounded-t-card" style={{ background: PRIORITY_CONFIG[card.priority].color }} />
 
         <div className="p-6 space-y-6">
-          {/* Title */}
+          {/* Header: Title + Close */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
+              <DialogTitle className="sr-only">{card.title}</DialogTitle>
+              <DialogDescription className="sr-only">Edit card details</DialogDescription>
               {editingTitle ? (
-                <input
+                <Input
                   autoFocus
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   onBlur={() => { updateField({ title }); setEditingTitle(false); }}
                   onKeyDown={e => e.key === 'Enter' && (updateField({ title }), setEditingTitle(false))}
-                  className="w-full text-xl font-serif font-semibold bg-transparent border-b-2 border-brass focus:outline-none pb-1"
+                  className={cn(
+                    "text-xl font-serif font-semibold bg-transparent border-b-2 border-brass",
+                    "rounded-none border-x-0 border-t-0 px-0 h-auto focus-visible:ring-0 focus-visible:border-brass"
+                  )}
                 />
               ) : (
                 <h2
@@ -99,96 +114,117 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               )}
               <p className="text-xs text-faint mt-1">Created {formatRelativeTime(card.createdAt)}</p>
             </div>
-            <button onClick={onClose} className="p-1 rounded hover:bg-ink/10 dark:hover:bg-dark-border transition-colors">
-              <X size={20} className="text-muted" />
-            </button>
+            <Button variant="ghost" size="icon-sm" onClick={onClose}>
+              <X size={18} className="text-muted" />
+            </Button>
           </div>
 
           {/* Meta row */}
           <div className="flex flex-wrap gap-3">
             {/* Priority */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <Flag size={10} /> Priority
-              </label>
-              <select
-                value={card.priority}
-                onChange={e => updateField({ priority: e.target.value as Card['priority'] })}
-                className="text-sm bg-ink/5 dark:bg-dark rounded-card px-2 py-1 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
-              >
-                {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
-                ))}
-              </select>
+              </FormLabel>
+              <Select value={card.priority} onValueChange={(val) => updateField({ priority: val as Card['priority'] })}>
+                <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Assignee */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <User size={10} /> Assignee
-              </label>
-              <select
-                value={card.assignee}
-                onChange={e => updateField({ assignee: e.target.value })}
-                className="text-sm bg-ink/5 dark:bg-dark rounded-card px-2 py-1 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
-              >
-                {members.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+              </FormLabel>
+              <Select value={card.assignee} onValueChange={(val) => { if (val) updateField({ assignee: val }); }}>
+                <SelectTrigger size="sm" className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Due Date */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <Calendar size={10} /> Due Date
-              </label>
-              <input
+              </FormLabel>
+              <Input
                 type="date"
                 value={card.dueDate || ''}
                 onChange={e => updateField({ dueDate: e.target.value || null })}
-                className="text-sm bg-ink/5 dark:bg-dark rounded-card px-2 py-1 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
+                className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7 w-auto"
               />
             </div>
 
             {/* Estimated Hours */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <Clock size={10} /> Est. Hours
-              </label>
-              <input
+              </FormLabel>
+              <Input
                 type="number"
-                min="0"
-                step="0.5"
+                min={0}
+                step={0.5}
                 value={card.estimatedHours || ''}
                 onChange={e => updateField({ estimatedHours: parseFloat(e.target.value) || undefined })}
-                className="text-sm bg-ink/5 dark:bg-dark rounded-card px-2 py-1 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass w-20"
+                className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7 w-20"
               />
             </div>
           </div>
 
+          <Separator className="bg-ink/10 dark:bg-dark-border" />
+
           {/* Labels */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <Tag size={10} /> Labels
-              </label>
-              <button
+              </FormLabel>
+              <Button
+                variant="link"
+                size="xs"
                 onClick={() => setShowLabelPicker(!showLabelPicker)}
-                className="text-xs text-brass hover:text-ink dark:hover:text-canvas transition-colors"
+                className="text-xs text-brass hover:text-ink dark:hover:text-canvas"
               >
                 {showLabelPicker ? 'Done' : '+ Add'}
-              </button>
+              </Button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {card.labels.map(label => (
-                <span
+                <Badge
                   key={label.id}
-                  className="px-2 py-0.5 rounded text-[11px] font-medium text-white"
+                  className="text-[11px] text-white border-transparent"
                   style={{ background: label.color }}
                 >
                   {label.name}
-                </span>
+                </Badge>
               ))}
               {card.labels.length === 0 && <span className="text-xs text-faint">No labels</span>}
             </div>
@@ -200,9 +236,10 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                     <button
                       key={label.id}
                       onClick={() => toggleLabel(label)}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                        active ? 'text-white ring-2 ring-offset-1 ring-ink/30' : 'text-white/80 opacity-60 hover:opacity-100'
-                      }`}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-xs font-medium transition-all text-white",
+                        active ? 'ring-2 ring-offset-1 ring-ink/30' : 'opacity-60 hover:opacity-100'
+                      )}
                       style={{ background: label.color }}
                     >
                       {label.name}
@@ -213,28 +250,37 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
             )}
           </div>
 
+          <Separator className="bg-ink/10 dark:bg-dark-border" />
+
           {/* Description */}
           <div className="space-y-2">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Description</label>
-            <textarea
+            <FormLabel className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">
+              Description
+            </FormLabel>
+            <Textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               onBlur={() => updateField({ description })}
               rows={3}
               placeholder="Add a description..."
-              className="w-full text-sm bg-ink/5 dark:bg-dark rounded-card px-3 py-2 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass resize-none"
+              className="text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 resize-none"
             />
           </div>
+
+          <Separator className="bg-ink/10 dark:bg-dark-border" />
 
           {/* Checklist */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
                 <CheckSquare size={10} /> Checklist
                 {card.checklist.length > 0 && (
                   <span className="text-faint ml-1">({checkProgress.done}/{checkProgress.total})</span>
                 )}
-              </label>
+              </FormLabel>
             </div>
             {card.checklist.length > 0 && (
               <div className="w-full h-1.5 bg-ink/10 dark:bg-dark-border rounded-full overflow-hidden">
@@ -247,17 +293,15 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
             <div className="space-y-1">
               {card.checklist.map(item => (
                 <div key={item.id} className="flex items-center gap-2 group">
-                  <button
-                    onClick={() => toggleCheckItem(item.id)}
-                    className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                      item.completed
-                        ? 'bg-brass border-brass text-white'
-                        : 'border-ink/20 dark:border-dark-border hover:border-brass'
-                    }`}
-                  >
-                    {item.completed && <span className="text-[10px]">✓</span>}
-                  </button>
-                  <span className={`text-sm flex-1 ${item.completed ? 'line-through text-faint' : ''}`}>
+                  <Checkbox
+                    checked={item.completed}
+                    onCheckedChange={() => toggleCheckItem(item.id)}
+                    className={cn(
+                      "data-checked:bg-brass data-checked:border-brass",
+                      "border-ink/20 dark:border-dark-border"
+                    )}
+                  />
+                  <span className={cn("text-sm flex-1", item.completed && "line-through text-faint")}>
                     {item.text}
                   </span>
                   <button
@@ -270,27 +314,33 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               ))}
             </div>
             <div className="flex gap-2">
-              <input
+              <Input
                 value={newCheckItem}
                 onChange={e => setNewCheckItem(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCheckItem()}
                 placeholder="Add item..."
-                className="flex-1 text-sm bg-ink/5 dark:bg-dark rounded-card px-3 py-1.5 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
+                className="flex-1 text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7"
               />
-              <button
+              <Button
                 onClick={addCheckItem}
-                className="px-3 py-1.5 bg-ink text-canvas dark:bg-canvas dark:text-ink rounded-card text-xs font-medium hover:opacity-80 transition-opacity"
+                size="sm"
+                className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:opacity-80"
               >
                 <Plus size={14} />
-              </button>
+              </Button>
             </div>
           </div>
 
+          <Separator className="bg-ink/10 dark:bg-dark-border" />
+
           {/* Comments */}
           <div className="space-y-2">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold flex items-center gap-1">
+            <FormLabel className={cn(
+              "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+              "flex items-center gap-1"
+            )}>
               <MessageSquare size={10} /> Comments ({card.comments.length})
-            </label>
+            </FormLabel>
             <div className="space-y-2">
               {card.comments.map(comment => (
                 <div key={comment.id} className="p-3 bg-ink/5 dark:bg-dark rounded-card animate-fade-in">
@@ -308,41 +358,47 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
               ))}
             </div>
             <div className="flex gap-2">
-              <input
+              <Input
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addComment()}
                 placeholder="Write a comment..."
-                className="flex-1 text-sm bg-ink/5 dark:bg-dark rounded-card px-3 py-1.5 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
+                className="flex-1 text-sm bg-ink/5 dark:bg-dark border-ink/10 dark:border-dark-border focus-visible:border-brass focus-visible:ring-brass/50 h-7"
               />
-              <button
+              <Button
                 onClick={addComment}
-                className="px-3 py-1.5 bg-ink text-canvas dark:bg-canvas dark:text-ink rounded-card text-xs font-medium hover:opacity-80 transition-opacity"
+                size="sm"
+                className="bg-ink text-canvas dark:bg-canvas dark:text-ink hover:opacity-80"
               >
                 Send
-              </button>
+              </Button>
             </div>
           </div>
 
+          <Separator className="bg-ink/10 dark:bg-dark-border" />
+
           {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t border-ink/10 dark:border-dark-border">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => updateField({ archived: !card.archived })}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:text-ink dark:hover:text-canvas rounded-card hover:bg-ink/5 dark:hover:bg-dark-border transition-colors"
+              className="text-muted hover:text-ink dark:hover:text-canvas"
             >
               <Archive size={14} />
               {card.archived ? 'Restore' : 'Archive'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => { if (confirm('Delete this card permanently?')) onDelete(); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 rounded-card hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
             >
               <Trash2 size={14} />
               Delete
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

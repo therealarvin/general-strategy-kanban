@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Board, Card, Column, TeamMember, ActivityEntry } from '@/types';
 import { loadBoard, saveBoard, loadMembers, saveMembers, loadTheme, saveTheme, loadActivity, saveActivity, addActivity } from '@/lib/storage';
 import { filterCards, exportBoardAsJSON } from '@/lib/utils';
@@ -17,6 +17,11 @@ import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card as CardUI, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 function BoardContent() {
   const searchParams = useSearchParams();
@@ -98,9 +103,20 @@ function BoardContent() {
   function onDragEnd(result: DropResult) {
     if (!board || !result.destination) return;
 
-    const { source, destination } = result;
-    const columns = [...board.columns];
+    const { source, destination, type } = result;
 
+    // Column reordering
+    if (type === 'column') {
+      const columns = [...board.columns];
+      const [moved] = columns.splice(source.index, 1);
+      columns.splice(destination.index, 0, moved);
+      updateBoard({ ...board, columns });
+      addActivity('reordered column', moved.title).then(refreshActivity);
+      return;
+    }
+
+    // Card reordering
+    const columns = [...board.columns];
     const srcCol = columns.find(c => c.id === source.droppableId);
     const destCol = columns.find(c => c.id === destination.droppableId);
     if (!srcCol || !destCol) return;
@@ -185,12 +201,12 @@ function BoardContent() {
   }
 
   if (!board) return (
-    <div className="min-h-screen flex items-center justify-center bg-canvas dark:bg-dark">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center animate-fade-in">
-        <div className="w-12 h-12 rounded-full bg-ink dark:bg-canvas flex items-center justify-center mx-auto mb-3">
-          <span className="text-canvas dark:text-ink font-serif text-lg font-semibold">GS</span>
+        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+          <span className="text-primary-foreground font-serif text-lg font-semibold">GS</span>
         </div>
-        <p className="text-sm text-muted">Loading...</p>
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
@@ -199,7 +215,7 @@ function BoardContent() {
   const showPanel = view === 'analytics' || view === 'activity' || view === 'team';
 
   return (
-    <div className="min-h-screen bg-canvas dark:bg-dark text-ink dark:text-canvas">
+    <div className="min-h-screen bg-background text-foreground">
       <Sidebar
         darkMode={darkMode}
         onToggleDark={toggleDark}
@@ -209,17 +225,17 @@ function BoardContent() {
 
       <main className="ml-56 flex flex-col h-screen">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-6 h-14 border-b border-ink/10 dark:border-dark-border flex-shrink-0">
+        <header className="flex items-center justify-between px-6 h-14 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="font-serif text-lg font-semibold">{board.name}</h2>
-            <div className="w-12 h-[2px] bg-brass" />
-            <span className="text-xs text-muted">
+            <Separator orientation="horizontal" className="w-12 bg-accent" />
+            <Badge variant="secondary" className="text-xs font-normal">
               {board.columns.reduce((sum, c) => sum + c.cards.filter(cd => !cd.archived).length, 0)} cards
-            </span>
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
-            <kbd className="text-[10px] text-faint bg-ink/5 dark:bg-dark-card px-2 py-1 rounded hidden sm:inline">⌘K search</kbd>
-            <kbd className="text-[10px] text-faint bg-ink/5 dark:bg-dark-card px-2 py-1 rounded hidden sm:inline">⌘N column</kbd>
+            <Badge variant="outline" className="text-[10px] font-normal">⌘K search</Badge>
+            <Badge variant="outline" className="text-[10px] font-normal">⌘N column</Badge>
           </div>
         </header>
 
@@ -243,70 +259,80 @@ function BoardContent() {
         ) : (
           <>
             {/* Filter bar */}
-            <div className="px-6 py-3 border-b border-ink/5 dark:border-dark-border/50 flex-shrink-0">
+            <div className="px-6 py-3 border-b border-border/50 flex-shrink-0">
               <FilterBar filters={filters} members={members} onChange={setFilters} />
             </div>
 
             {/* Kanban board */}
             <div className="flex-1 overflow-x-auto overflow-y-hidden">
               <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-4 p-6 h-full items-start">
-                  {board.columns.map(column => {
+                <Droppable droppableId="board-columns" direction="horizontal" type="column">
+                  {(provided) => (
+                <div
+                  className="flex gap-4 p-6 h-full items-start"
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                >
+                  {board.columns.map((column, index) => {
                     const filtered = filterCards(column.cards, filters);
                     return (
-                      <KanbanColumn
-                        key={column.id}
-                        column={column}
-                        members={members}
-                        filteredCards={filtered}
-                        onAddCard={handleAddCard}
-                        onCardClick={(card, colId) => setSelectedCard({ card, columnId: colId })}
-                        onDeleteColumn={handleDeleteColumn}
-                        onRenameColumn={handleRenameColumn}
-                      />
+                      <Draggable key={column.id} draggableId={column.id} index={index}>
+                        {(dragProvided) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            {...dragProvided.dragHandleProps}
+                          >
+                            <KanbanColumn
+                              column={column}
+                              members={members}
+                              filteredCards={filtered}
+                              onAddCard={handleAddCard}
+                              onCardClick={(card, colId) => setSelectedCard({ card, columnId: colId })}
+                              onDeleteColumn={handleDeleteColumn}
+                              onRenameColumn={handleRenameColumn}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
                     );
                   })}
+                  {provided.placeholder}
 
                   {/* Add column */}
                   <div className="flex-shrink-0 w-72">
                     {addingColumn ? (
-                      <div className="p-3 bg-white dark:bg-dark-card border border-ink/10 dark:border-dark-border rounded-card space-y-2 animate-fade-in">
-                        <input
-                          autoFocus
-                          value={newColumnTitle}
-                          onChange={e => setNewColumnTitle(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleAddColumn();
-                            if (e.key === 'Escape') { setAddingColumn(false); setNewColumnTitle(''); }
-                          }}
-                          placeholder="Column title..."
-                          className="w-full text-sm bg-transparent focus:outline-none"
-                        />
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={handleAddColumn}
-                            className="px-3 py-1 bg-ink text-canvas dark:bg-canvas dark:text-ink rounded text-xs font-medium hover:opacity-80"
-                          >
-                            Add
-                          </button>
-                          <button
-                            onClick={() => { setAddingColumn(false); setNewColumnTitle(''); }}
-                            className="px-3 py-1 text-xs text-muted"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
+                      <CardUI className="animate-fade-in">
+                        <CardContent className="pt-4 space-y-2">
+                          <Input
+                            autoFocus
+                            value={newColumnTitle}
+                            onChange={e => setNewColumnTitle(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleAddColumn();
+                              if (e.key === 'Escape') { setAddingColumn(false); setNewColumnTitle(''); }
+                            }}
+                            placeholder="Column title..."
+                          />
+                          <div className="flex gap-1.5">
+                            <Button size="sm" onClick={handleAddColumn}>Add</Button>
+                            <Button variant="ghost" size="sm" onClick={() => { setAddingColumn(false); setNewColumnTitle(''); }}>Cancel</Button>
+                          </div>
+                        </CardContent>
+                      </CardUI>
                     ) : (
-                      <button
+                      <Button
+                        variant="outline"
                         onClick={() => setAddingColumn(true)}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-card border border-dashed border-ink/20 dark:border-dark-border text-sm text-muted hover:text-ink dark:hover:text-canvas hover:border-brass/50 transition-colors"
+                        className="w-full border-dashed text-muted-foreground hover:text-foreground hover:border-accent/50"
                       >
                         <Plus size={16} /> Add Column
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
+                  )}
+                </Droppable>
               </DragDropContext>
             </div>
           </>
@@ -338,8 +364,8 @@ function BoardContent() {
 export default function Home() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-canvas dark:bg-dark">
-        <p className="text-sm text-muted">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     }>
       <BoardContent />

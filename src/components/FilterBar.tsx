@@ -2,6 +2,11 @@
 
 import { DEFAULT_LABELS, PRIORITY_CONFIG, TeamMember } from '@/types';
 import { Filter, X } from 'lucide-react';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 interface Filters {
   search: string;
@@ -28,60 +33,97 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
       </div>
 
       {/* Priority */}
-      <select
-        value={filters.priority}
-        onChange={e => onChange({ ...filters, priority: e.target.value })}
-        className="text-xs bg-ink/5 dark:bg-dark-card border border-ink/10 dark:border-dark-border rounded-card px-2 py-1.5 focus:outline-none focus:border-brass"
+      <Select
+        value={filters.priority || null}
+        onValueChange={(value) => onChange({ ...filters, priority: value ?? '' })}
       >
-        <option value="">All Priorities</option>
-        {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
-          <option key={key} value={key}>{config.label}</option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          className={cn(
+            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
+            'rounded-card focus-visible:border-brass'
+          )}
+        >
+          <SelectValue placeholder="All Priorities" />
+        </SelectTrigger>
+        <SelectContent
+          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
+        >
+          <SelectItem value={null as unknown as string}>All Priorities</SelectItem>
+          {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
+            <SelectItem key={key} value={key}>{config.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Label */}
-      <select
-        value={filters.label}
-        onChange={e => onChange({ ...filters, label: e.target.value })}
-        className="text-xs bg-ink/5 dark:bg-dark-card border border-ink/10 dark:border-dark-border rounded-card px-2 py-1.5 focus:outline-none focus:border-brass"
+      <Select
+        value={filters.label || null}
+        onValueChange={(value) => onChange({ ...filters, label: value ?? '' })}
       >
-        <option value="">All Labels</option>
-        {DEFAULT_LABELS.map(label => (
-          <option key={label.id} value={label.id}>{label.name}</option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          className={cn(
+            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
+            'rounded-card focus-visible:border-brass'
+          )}
+        >
+          <SelectValue placeholder="All Labels" />
+        </SelectTrigger>
+        <SelectContent
+          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
+        >
+          <SelectItem value={null as unknown as string}>All Labels</SelectItem>
+          {DEFAULT_LABELS.map(label => (
+            <SelectItem key={label.id} value={label.id}>{label.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Assignee */}
-      <select
-        value={filters.assignee}
-        onChange={e => onChange({ ...filters, assignee: e.target.value })}
-        className="text-xs bg-ink/5 dark:bg-dark-card border border-ink/10 dark:border-dark-border rounded-card px-2 py-1.5 focus:outline-none focus:border-brass"
+      <Select
+        value={filters.assignee || null}
+        onValueChange={(value) => onChange({ ...filters, assignee: value ?? '' })}
       >
-        <option value="">All Assignees</option>
-        {members.map(m => (
-          <option key={m.id} value={m.id}>{m.name}</option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          className={cn(
+            'text-xs bg-ink/5 dark:bg-dark-card border-ink/10 dark:border-dark-border',
+            'rounded-card focus-visible:border-brass'
+          )}
+        >
+          <SelectValue placeholder="All Assignees" />
+        </SelectTrigger>
+        <SelectContent
+          className="bg-canvas dark:bg-dark-card border-ink/10 dark:border-dark-border"
+        >
+          <SelectItem value={null as unknown as string}>All Assignees</SelectItem>
+          {members.map(m => (
+            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      {/* Show archived */}
-      <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
-        <input
-          type="checkbox"
+      {/* Show Archived */}
+      <Label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer font-normal">
+        <Checkbox
           checked={filters.showArchived}
-          onChange={e => onChange({ ...filters, showArchived: e.target.checked })}
-          className="accent-brass"
+          onCheckedChange={(checked) => onChange({ ...filters, showArchived: checked === true })}
+          className="data-checked:bg-brass data-checked:border-brass"
         />
         Show Archived
-      </label>
+      </Label>
 
       {/* Clear */}
       {hasFilters && (
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => onChange({ search: filters.search, priority: '', label: '', assignee: '', showArchived: false })}
-          className="flex items-center gap-1 text-xs text-brass hover:text-ink dark:hover:text-canvas transition-colors"
+          className="text-brass hover:text-ink dark:hover:text-canvas gap-1"
         >
           <X size={12} /> Clear
-        </button>
+        </Button>
       )}
     </div>
   );

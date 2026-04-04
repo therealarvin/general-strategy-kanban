@@ -4,10 +4,14 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
-  LayoutDashboard, Columns3, Shield, BarChart3, Activity,
-  Settings, ChevronLeft, ChevronRight, Moon, Sun, Search,
+  Columns3, Shield, BarChart3, Activity,
+  ChevronLeft, ChevronRight, Moon, Sun, Search,
   Download, Users
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 
 interface SidebarProps {
   darkMode: boolean;
@@ -32,6 +36,27 @@ export default function Sidebar(props: SidebarProps) {
   );
 }
 
+function NavItemWithTooltip({
+  collapsed,
+  label,
+  children,
+}: {
+  collapsed: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  if (!collapsed) return <>{children}</>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={(props) => <div {...props}>{children}</div>} />
+      <TooltipContent side="right" sideOffset={8}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
@@ -39,116 +64,136 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
   const currentView = searchParams.get('view');
 
   return (
-    <aside
-      className={`
-        fixed left-0 top-0 h-full z-40 flex flex-col
-        border-r transition-all duration-300 ease-in-out
-        ${collapsed ? 'w-16' : 'w-56'}
-        bg-canvas dark:bg-dark
-        border-ink/10 dark:border-dark-border
-      `}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-ink/10 dark:border-dark-border">
-        <div className="w-8 h-8 rounded-full bg-ink dark:bg-canvas flex items-center justify-center flex-shrink-0">
-          <span className="text-canvas dark:text-ink font-serif text-sm font-semibold">GS</span>
-        </div>
-        {!collapsed && (
-          <div className="animate-fade-in overflow-hidden">
-            <h1 className="font-serif text-sm font-semibold tracking-tight truncate">General Strategy</h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Command Center</p>
-          </div>
+    <TooltipProvider delay={300}>
+      <aside
+        className={cn(
+          'fixed left-0 top-0 h-full z-40 flex flex-col',
+          'border-r transition-all duration-300 ease-in-out',
+          'bg-canvas dark:bg-dark',
+          'border-ink/10 dark:border-dark-border',
+          collapsed ? 'w-16' : 'w-56'
         )}
-      </div>
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-4 h-16">
+          <div className="w-8 h-8 rounded-full bg-ink dark:bg-canvas flex items-center justify-center flex-shrink-0">
+            <span className="text-canvas dark:text-ink font-serif text-sm font-semibold">GS</span>
+          </div>
+          {!collapsed && (
+            <div className="animate-fade-in overflow-hidden">
+              <h1 className="font-serif text-sm font-semibold tracking-tight truncate">General Strategy</h1>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-brass font-semibold">Command Center</p>
+            </div>
+          )}
+        </div>
 
-      {/* Search */}
-      <div className="px-3 py-3">
-        <button
-          onClick={onSearch}
-          className={`
-            w-full flex items-center gap-2 rounded-card text-sm
-            bg-ink/5 dark:bg-dark-card hover:bg-ink/10 dark:hover:bg-dark-border
-            transition-colors
-            ${collapsed ? 'justify-center p-2' : 'px-3 py-2'}
-          `}
-        >
-          <Search size={16} className="text-muted flex-shrink-0" />
-          {!collapsed && <span className="text-muted">Search... ⌘K</span>}
-        </button>
-      </div>
+        <Separator className="bg-ink/10 dark:bg-dark-border" />
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 space-y-1">
-        {NAV_ITEMS.map(item => {
-          const itemView = item.href.includes('view=') ? item.href.split('view=')[1] : null;
-          const isActive = item.href === '/vault'
-            ? pathname === '/vault'
-            : itemView
-              ? pathname === '/' && currentView === itemView
-              : pathname === '/' && !currentView;
-
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`
-                flex items-center gap-3 rounded-card text-sm font-medium
-                transition-all duration-200
-                ${collapsed ? 'justify-center p-2' : 'px-3 py-2'}
-                ${isActive
-                  ? 'bg-ink text-canvas dark:bg-canvas dark:text-ink'
-                  : 'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
-                }
-              `}
+        {/* Search */}
+        <div className="px-3 py-3">
+          <NavItemWithTooltip collapsed={collapsed} label="Search (⌘K)">
+            <Button
+              variant="ghost"
+              onClick={onSearch}
+              className={cn(
+                'w-full bg-ink/5 dark:bg-dark-card',
+                'hover:bg-ink/10 dark:hover:bg-dark-border',
+                'text-muted',
+                collapsed ? 'justify-center' : 'justify-start gap-2'
+              )}
+              size={collapsed ? 'icon' : 'default'}
             >
-              <item.icon size={18} className="flex-shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
-      </nav>
+              <Search size={16} className="flex-shrink-0" />
+              {!collapsed && <span className="text-sm font-normal">Search... ⌘K</span>}
+            </Button>
+          </NavItemWithTooltip>
+        </div>
 
-      {/* Bottom actions */}
-      <div className="px-3 py-3 space-y-1 border-t border-ink/10 dark:border-dark-border">
-        <button
-          onClick={onToggleDark}
-          className={`
-            w-full flex items-center gap-3 rounded-card text-sm font-medium
-            text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card
-            transition-colors
-            ${collapsed ? 'justify-center p-2' : 'px-3 py-2'}
-          `}
-        >
-          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          {!collapsed && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
-        </button>
+        {/* Nav */}
+        <nav className="flex-1 px-3 space-y-1">
+          {NAV_ITEMS.map(item => {
+            const itemView = item.href.includes('view=') ? item.href.split('view=')[1] : null;
+            const isActive = item.href === '/vault'
+              ? pathname === '/vault'
+              : itemView
+                ? pathname === '/' && currentView === itemView
+                : pathname === '/' && !currentView;
 
-        <button
-          onClick={onExport}
-          className={`
-            w-full flex items-center gap-3 rounded-card text-sm font-medium
-            text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card
-            transition-colors
-            ${collapsed ? 'justify-center p-2' : 'px-3 py-2'}
-          `}
-        >
-          <Download size={18} />
-          {!collapsed && <span>Export Backup</span>}
-        </button>
+            return (
+              <NavItemWithTooltip key={item.label} collapsed={collapsed} label={item.label}>
+                <Button
+                  variant="ghost"
+                  size={collapsed ? 'icon' : 'default'}
+                  className={cn(
+                    'w-full rounded-card',
+                    collapsed ? 'justify-center' : 'justify-start gap-3',
+                    isActive
+                      ? 'bg-ink text-canvas hover:bg-ink/90 hover:text-canvas dark:bg-canvas dark:text-ink dark:hover:bg-canvas/90 dark:hover:text-ink'
+                      : 'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+                  )}
+                  render={(props) => <Link {...props} href={item.href} />}
+                >
+                  <item.icon size={18} className="flex-shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </Button>
+              </NavItemWithTooltip>
+            );
+          })}
+        </nav>
 
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={`
-            w-full flex items-center gap-3 rounded-card text-sm font-medium
-            text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card
-            transition-colors
-            ${collapsed ? 'justify-center p-2' : 'px-3 py-2'}
-          `}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
-      </div>
-    </aside>
+        <Separator className="bg-ink/10 dark:bg-dark-border" />
+
+        {/* Bottom actions */}
+        <div className="px-3 py-3 space-y-1">
+          <NavItemWithTooltip collapsed={collapsed} label={darkMode ? 'Light Mode' : 'Dark Mode'}>
+            <Button
+              variant="ghost"
+              size={collapsed ? 'icon' : 'default'}
+              onClick={onToggleDark}
+              className={cn(
+                'w-full rounded-card',
+                collapsed ? 'justify-center' : 'justify-start gap-3',
+                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+              )}
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {!collapsed && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+            </Button>
+          </NavItemWithTooltip>
+
+          <NavItemWithTooltip collapsed={collapsed} label="Export Backup">
+            <Button
+              variant="ghost"
+              size={collapsed ? 'icon' : 'default'}
+              onClick={onExport}
+              className={cn(
+                'w-full rounded-card',
+                collapsed ? 'justify-center' : 'justify-start gap-3',
+                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+              )}
+            >
+              <Download size={18} />
+              {!collapsed && <span>Export Backup</span>}
+            </Button>
+          </NavItemWithTooltip>
+
+          <NavItemWithTooltip collapsed={collapsed} label={collapsed ? 'Expand' : 'Collapse'}>
+            <Button
+              variant="ghost"
+              size={collapsed ? 'icon' : 'default'}
+              onClick={() => setCollapsed(!collapsed)}
+              className={cn(
+                'w-full rounded-card',
+                collapsed ? 'justify-center' : 'justify-start gap-3',
+                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+              )}
+            >
+              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+              {!collapsed && <span>Collapse</span>}
+            </Button>
+          </NavItemWithTooltip>
+        </div>
+      </aside>
+    </TooltipProvider>
   );
 }
