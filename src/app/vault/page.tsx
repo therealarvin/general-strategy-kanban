@@ -17,7 +17,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import dynamic from 'next/dynamic';
 
 const DocumentEditor = dynamic(() => import('@/components/DocumentEditor'), { ssr: false });
@@ -123,19 +122,21 @@ export default function VaultPage() {
   }
 
   function addDocument() {
-    if (!newEntry.name || !documentContent.trim()) return;
+    if (!newEntry.name) return;
     const entry: VaultEntry = {
       id: uuidv4(),
       category: 'document',
       name: newEntry.name,
-      value: documentContent,
+      value: documentContent || '',
       description: newEntry.description || '',
       tags: newEntry.tags || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       hidden: false,
     };
-    update([entry, ...entries]);
+    const newEntries = [entry, ...entries];
+    update(newEntries);
+    openDocEditor(entry);
     setNewEntry({ category: 'api-key', name: '', value: '', description: '', tags: [] });
     setDocumentContent('');
     setTagInput('');
@@ -232,7 +233,8 @@ export default function VaultPage() {
         onSearch={() => {}}
       />
 
-      <main className="ml-56 p-6">
+      <main className={cn('ml-56 flex h-screen', docEditorEntry ? '' : '')}>
+       <div className={cn('flex-1 overflow-y-auto p-6 transition-all', docEditorEntry ? 'max-w-[50%]' : '')}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -488,9 +490,9 @@ export default function VaultPage() {
                               {entry.description && <p className="text-xs text-muted-foreground mb-2">{entry.description}</p>}
                               {entry.category === 'document' ? (
                                 <div
-                                  className="text-xs bg-secondary px-3 py-2 rounded whitespace-pre-wrap max-h-32 overflow-y-auto cursor-pointer hover:ring-1 hover:ring-accent/30 transition-all"
+                                  className="tiptap text-xs bg-secondary px-3 py-2 rounded max-h-32 overflow-y-auto cursor-pointer hover:ring-1 hover:ring-accent/30 transition-all"
                                   onClick={() => openDocEditor(entry)}
-                                  dangerouslySetInnerHTML={{ __html: entry.value || '<span class="text-muted-foreground">Click to edit document...</span>' }}
+                                  dangerouslySetInnerHTML={{ __html: entry.value || '<p class="text-muted-foreground">Click to edit document...</p>' }}
                                 />
                               ) : entry.category === 'file' ? (
                                 <div className="flex items-center gap-2">
@@ -576,42 +578,52 @@ export default function VaultPage() {
             ))}
           </div>
         )}
-      </main>
+       </div>
 
-      {/* Document Editor Sheet */}
-      <Sheet open={!!docEditorEntry} onOpenChange={(open) => { if (!open) setDocEditorEntry(null); }}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-          <SheetHeader className="px-6 py-4 border-b border-border flex-shrink-0">
-            <SheetTitle className="sr-only">Edit Document</SheetTitle>
-            <div className="space-y-2">
-              <Input
-                value={docEditorName}
-                onChange={e => setDocEditorName(e.target.value)}
-                className="text-lg font-serif font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
-                placeholder="Document title..."
-              />
+        {/* Document Editor Panel */}
+        {docEditorEntry && (
+          <div className="w-[50%] border-l border-border flex flex-col bg-card">
+            <div className="px-6 py-4 border-b border-border flex-shrink-0 space-y-2">
+              <div className="flex items-center justify-between">
+                <Input
+                  value={docEditorName}
+                  onChange={e => setDocEditorName(e.target.value)}
+                  className="text-lg font-serif font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 flex-1"
+                  placeholder="Document title..."
+                />
+                <Button variant="ghost" size="icon" onClick={() => setDocEditorEntry(null)}>
+                  <X size={18} />
+                </Button>
+              </div>
               <Input
                 value={docEditorDesc}
                 onChange={e => setDocEditorDesc(e.target.value)}
                 className="text-xs text-muted-foreground border-0 bg-transparent px-0 h-auto focus-visible:ring-0"
                 placeholder="Description..."
               />
+              <div className="flex items-center gap-2">
+                {docEditorEntry.tags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="bg-accent/10 text-accent text-[9px]">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto p-6">
-            <DocumentEditor
-              content={docEditorContent}
-              onChange={setDocEditorContent}
-            />
+            <div className="flex-1 overflow-y-auto p-4">
+              <DocumentEditor
+                content={docEditorContent}
+                onChange={setDocEditorContent}
+              />
+            </div>
+            <div className="px-6 py-3 border-t border-border flex gap-2 flex-shrink-0">
+              <Button onClick={saveDocEditor}>
+                <Save size={14} /> Save
+              </Button>
+              <Button variant="ghost" onClick={() => setDocEditorEntry(null)}>Close</Button>
+            </div>
           </div>
-          <div className="px-6 py-3 border-t border-border flex gap-2 flex-shrink-0">
-            <Button onClick={saveDocEditor}>
-              <Save size={14} /> Save Document
-            </Button>
-            <Button variant="ghost" onClick={() => setDocEditorEntry(null)}>Cancel</Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+        )}
+      </main>
     </div>
   );
 }
