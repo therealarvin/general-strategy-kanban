@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { VaultEntry, VAULT_CATEGORIES } from '@/types';
 import { loadVault, saveVault, loadTheme, saveTheme } from '@/lib/storage';
 import { formatRelativeTime, exportBoardAsJSON, cn } from '@/lib/utils';
-import { Shield, Plus, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, ExternalLink, Upload, Download, FileText } from 'lucide-react';
+import { Shield, Plus, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, ExternalLink, Upload, Download, FileText, Maximize2, Minimize2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import IconMap from '@/components/IconMap';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,6 +47,7 @@ export default function VaultPage() {
   const [docEditorContent, setDocEditorContent] = useState('');
   const [docEditorName, setDocEditorName] = useState('');
   const [docEditorDesc, setDocEditorDesc] = useState('');
+  const [docEditorFullscreen, setDocEditorFullscreen] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -178,6 +179,7 @@ export default function VaultPage() {
     setDocEditorContent(entry.value);
     setDocEditorName(entry.name);
     setDocEditorDesc(entry.description);
+    setDocEditorFullscreen(false);
   }
 
   function saveDocEditor() {
@@ -233,8 +235,11 @@ export default function VaultPage() {
         onSearch={() => {}}
       />
 
-      <main className={cn('ml-56 flex h-screen', docEditorEntry ? '' : '')}>
-       <div className={cn('flex-1 overflow-y-auto p-6 transition-all', docEditorEntry ? 'max-w-[50%]' : '')}>
+      <main className="ml-56 flex h-screen">
+       <div className={cn(
+         'overflow-y-auto p-6 transition-all',
+         docEditorEntry && !docEditorFullscreen ? 'w-[50%] flex-shrink-0' : docEditorEntry && docEditorFullscreen ? 'hidden' : 'flex-1'
+       )}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -262,7 +267,7 @@ export default function VaultPage() {
           </div>
           <Select value={categoryFilter || 'all'} onValueChange={v => setCategoryFilter(v === 'all' || !v ? '' : v)}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="All Categories" />
+              <SelectValue>{categoryFilter ? VAULT_CATEGORIES[categoryFilter as keyof typeof VAULT_CATEGORIES]?.label : 'All Categories'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
@@ -582,18 +587,31 @@ export default function VaultPage() {
 
         {/* Document Editor Panel */}
         {docEditorEntry && (
-          <div className="w-[50%] border-l border-border flex flex-col bg-card">
+          <div className={cn(
+            'border-l border-border flex flex-col bg-card transition-all',
+            docEditorFullscreen ? 'flex-1' : 'w-[50%]'
+          )}>
             <div className="px-6 py-4 border-b border-border flex-shrink-0 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <Input
                   value={docEditorName}
                   onChange={e => setDocEditorName(e.target.value)}
                   className="text-lg font-serif font-semibold border-0 bg-transparent px-0 h-auto focus-visible:ring-0 flex-1"
                   placeholder="Document title..."
                 />
-                <Button variant="ghost" size="icon" onClick={() => setDocEditorEntry(null)}>
-                  <X size={18} />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="ghost" size="icon" onClick={() => setDocEditorFullscreen(!docEditorFullscreen)}>
+                        {docEditorFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{docEditorFullscreen ? 'Split view' : 'Full screen'}</TooltipContent>
+                  </Tooltip>
+                  <Button variant="ghost" size="icon" onClick={() => setDocEditorEntry(null)}>
+                    <X size={18} />
+                  </Button>
+                </div>
               </div>
               <Input
                 value={docEditorDesc}
