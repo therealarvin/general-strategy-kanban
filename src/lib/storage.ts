@@ -23,11 +23,14 @@ export async function loadBoard(): Promise<Board> {
     .eq('board_id', boards.id)
     .order('position');
 
-  const { data: cards } = await supabase
-    .from('cards')
-    .select('*')
-    .in('column_id', (columns || []).map(c => c.id))
-    .order('position');
+  const columnIds = (columns || []).map(c => c.id);
+  const { data: cards } = columnIds.length > 0
+    ? await supabase
+        .from('cards')
+        .select('*')
+        .in('column_id', columnIds)
+        .order('position')
+    : { data: [] as Record<string, unknown>[] };
 
   const boardColumns: Column[] = (columns || []).map(col => ({
     id: col.id,
@@ -353,7 +356,35 @@ async function seedDefaultBoard(): Promise<Board> {
 
   await supabase.from('cards').insert(cards);
 
-  return loadBoard();
+  const boardColumns: Column[] = defaultColumns.map(col => ({
+    id: col.id,
+    title: col.title,
+    cards: cards
+      .filter(c => c.column_id === col.id)
+      .map(c => ({
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        labels: c.labels as { id: string; name: string; color: string }[],
+        assignee: c.assignee,
+        dueDate: null,
+        priority: c.priority as Card['priority'],
+        checklist: [],
+        comments: [],
+        attachments: [],
+        archived: false,
+        createdAt: now,
+        updatedAt: now,
+      })),
+  }));
+
+  return {
+    id: boardId,
+    name: 'General Strategy',
+    columns: boardColumns,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 function getSampleVault(): VaultEntry[] {

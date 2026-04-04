@@ -41,10 +41,15 @@ function BoardContent() {
   // Load data
   useEffect(() => {
     async function init() {
-      const [b, m, a] = await Promise.all([loadBoard(), loadMembers(), loadActivity()]);
-      setBoard(b);
-      setMembers(m);
-      setActivityEntries(a);
+      try {
+        const b = await loadBoard();
+        const [m, a] = await Promise.all([loadMembers(), loadActivity()]);
+        setBoard(b);
+        setMembers(m);
+        setActivityEntries(a);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      }
       const theme = loadTheme();
       setDarkMode(theme === 'dark');
       if (theme === 'dark') document.documentElement.classList.add('dark');
