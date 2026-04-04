@@ -80,7 +80,7 @@ export function filterCards(cards: Card[], filters: {
     }
     if (filters.priority && card.priority !== filters.priority) return false;
     if (filters.label && !card.labels.some(l => l.id === filters.label)) return false;
-    if (filters.assignee && card.assignee !== filters.assignee) return false;
+    if (filters.assignee && !card.assignees?.includes(filters.assignee)) return false;
     return true;
   });
 }

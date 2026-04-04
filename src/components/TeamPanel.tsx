@@ -87,7 +87,7 @@ export default function TeamPanel({ members, columns, onUpdateMembers }: TeamPan
 
       <div className="space-y-2">
         {members.map(member => {
-          const cardCount = allCards.filter(c => c.assignee === member.id).length;
+          const cardCount = allCards.filter(c => c.assignees?.includes(member.id)).length;
           return (
             <Card
               key={member.id}

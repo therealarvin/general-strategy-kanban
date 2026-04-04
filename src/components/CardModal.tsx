@@ -144,24 +144,44 @@ export default function CardModal({ card, members, columns, onUpdate, onDelete, 
               </Select>
             </div>
 
-            {/* Assignee */}
+            {/* Assignees */}
             <div className="space-y-1">
               <FormLabel className={cn(
                 "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
                 "flex items-center gap-1"
               )}>
-                <User size={10} /> Assignee
+                <User size={10} /> Assignees
               </FormLabel>
-              <Select value={card.assignee} onValueChange={(val) => { if (val) updateField({ assignee: val }); }}>
-                <SelectTrigger size="sm" className="text-sm bg-muted border-border focus-visible:border-accent focus-visible:ring-accent/50">
-                  <SelectValue>{members.find(m => m.id === card.assignee)?.name || card.assignee}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1.5">
+                {members.map(m => {
+                  const active = card.assignees?.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        const next = active
+                          ? (card.assignees || []).filter(id => id !== m.id)
+                          : [...(card.assignees || []), m.id];
+                        updateField({ assignees: next });
+                      }}
+                      className={cn(
+                        'px-2 py-1 rounded text-xs font-medium transition-all border',
+                        active
+                          ? 'border-accent bg-accent/10 text-foreground'
+                          : 'border-border bg-muted text-muted-foreground hover:border-accent/50'
+                      )}
+                    >
+                      <span
+                        className="inline-block w-4 h-4 rounded-full align-middle mr-1 text-[8px] text-white font-bold leading-4 text-center"
+                        style={{ background: m.color }}
+                      >
+                        {m.initials}
+                      </span>
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Due Date */}

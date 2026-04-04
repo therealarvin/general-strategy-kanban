@@ -44,7 +44,7 @@ export default function KanbanColumn({
       title: newCardTitle.trim(),
       description: '',
       labels: [],
-      assignee: 'm2',
+      assignees: ['m2'],
       dueDate: null,
       priority: 'medium',
       checklist: [],

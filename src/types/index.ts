@@ -31,7 +31,7 @@ export interface Card {
   title: string;
   description: string;
   labels: Label[];
-  assignee: string;
+  assignees: string[];
   dueDate: string | null;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   checklist: ChecklistItem[];

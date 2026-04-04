@@ -53,7 +53,7 @@ function calculateNextAction(
   for (const col of columns) {
     if (isDoneColumn(col)) continue;
     for (const card of col.cards) {
-      if (card.archived || card.assignee !== memberId) continue;
+      if (card.archived || !card.assignees?.includes(memberId)) continue;
 
       const blocked = isBlocked(card, columns);
       if (blocked) continue;
@@ -62,13 +62,15 @@ function calculateNextAction(
 
       const priorityScore = PRIORITY_WEIGHT[card.priority] || 1;
       // Hours factor: quick tasks get a significant boost
-      // 0.1h → 10/(0.6) = 16.7, 1h → 10/1.5 = 6.7, 25h → 10/25.5 = 0.4
       const hoursFactor = card.estimatedHours ? (10 / (card.estimatedHours + 0.5)) : 0;
       // Dependents factor: tasks that unblock others get a boost
       const dependents = countDependents(card.id, allCards);
       const dependentsFactor = dependents * 3;
+      // Multi-assignee: shared responsibility slightly lowers individual urgency
+      const assigneeCount = card.assignees?.length || 1;
+      const sharedFactor = assigneeCount > 1 ? 0.8 : 1;
       // Final score
-      const score = priorityScore * 2 + hoursFactor + dependentsFactor;
+      const score = (priorityScore * 2 + hoursFactor + dependentsFactor) * sharedFactor;
 
       candidates.push({ card, columnId: col.id, score, blocked });
     }
@@ -174,7 +176,7 @@ export default function NextActions({ columns, members, onSetNextAction, onCardC
                     </div>
                     <div className="max-h-32 overflow-y-auto space-y-0.5 min-w-0">
                       {allCards
-                        .filter(c => c.card.assignee === member.id && !isDoneColumn(columns.find(col => col.id === c.columnId)!))
+                        .filter(c => c.card.assignees?.includes(member.id) && !isDoneColumn(columns.find(col => col.id === c.columnId)!))
                         .map(({ card }) => {
                           const blocked = isBlocked(card, columns);
                           const hasExtDeps = card.externalDependencies && card.externalDependencies.length > 0;

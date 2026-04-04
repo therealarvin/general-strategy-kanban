@@ -20,7 +20,10 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
   const overdue = isOverdue(card.dueDate);
   const dueSoon = isDueSoon(card.dueDate);
   const checkProgress = getChecklistProgress(card);
-  const assignee = members.find(m => m.id === card.assignee);
+  const assignees = (card.assignees || [])
+    .filter(id => id !== 'm2')
+    .map(id => members.find(m => m.id === id))
+    .filter(Boolean) as TeamMember[];
 
   return (
     <Draggable draggableId={card.id} index={index}>
@@ -139,14 +142,19 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
                 </span>
               )}
 
-              {/* Assignee avatar */}
-              {assignee && assignee.id !== 'm2' && (
-                <div
-                  className="ml-auto w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: assignee.color }}
-                  title={assignee.name}
-                >
-                  <span className="text-[8px] text-white font-bold">{assignee.initials}</span>
+              {/* Assignee avatars */}
+              {assignees.length > 0 && (
+                <div className="ml-auto flex items-center flex-shrink-0">
+                  {assignees.map((a, i) => (
+                    <div
+                      key={a.id}
+                      className="w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-card"
+                      style={{ background: a.color, marginLeft: i > 0 ? '-6px' : '0', zIndex: assignees.length - i }}
+                      title={a.name}
+                    >
+                      <span className="text-[8px] text-white font-bold">{a.initials}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
