@@ -69,15 +69,15 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
         className={cn(
           'fixed left-0 top-0 h-full z-40 flex flex-col',
           'border-r transition-all duration-300 ease-in-out',
-          'bg-canvas dark:bg-dark',
-          'border-ink/10 dark:border-dark-border',
+          'bg-background',
+          'border-border',
           collapsed ? 'w-16' : 'w-56'
         )}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16">
-          <div className="w-8 h-8 rounded-full bg-ink dark:bg-canvas flex items-center justify-center flex-shrink-0">
-            <span className="text-canvas dark:text-ink font-serif text-sm font-semibold">GS</span>
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-foreground font-serif text-sm font-semibold">GS</span>
           </div>
           {!collapsed && (
             <div className="animate-fade-in overflow-hidden">
@@ -87,7 +87,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
           )}
         </div>
 
-        <Separator className="bg-ink/10 dark:bg-dark-border" />
+        <Separator className="bg-border" />
 
         {/* Search */}
         <div className="px-3 py-3">
@@ -96,9 +96,9 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
               variant="ghost"
               onClick={onSearch}
               className={cn(
-                'w-full bg-ink/5 dark:bg-dark-card',
-                'hover:bg-ink/10 dark:hover:bg-dark-border',
-                'text-muted',
+                'w-full bg-muted',
+                'hover:bg-muted/80',
+                'text-muted-foreground',
                 collapsed ? 'justify-center' : 'justify-start gap-2'
               )}
               size={collapsed ? 'icon' : 'default'}
@@ -128,8 +128,8 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
                     'w-full rounded-card',
                     collapsed ? 'justify-center' : 'justify-start gap-3',
                     isActive
-                      ? 'bg-ink text-canvas hover:bg-ink/90 hover:text-canvas dark:bg-canvas dark:text-ink dark:hover:bg-canvas/90 dark:hover:text-ink'
-                      : 'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
                   render={(props) => <Link {...props} href={item.href} />}
                 >
@@ -141,7 +141,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
           })}
         </nav>
 
-        <Separator className="bg-ink/10 dark:bg-dark-border" />
+        <Separator className="bg-border" />
 
         {/* Bottom actions */}
         <div className="px-3 py-3 space-y-1">
@@ -153,7 +153,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
               className={cn(
                 'w-full rounded-card',
                 collapsed ? 'justify-center' : 'justify-start gap-3',
-                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+                'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -169,7 +169,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
               className={cn(
                 'w-full rounded-card',
                 collapsed ? 'justify-center' : 'justify-start gap-3',
-                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+                'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               <Download size={18} />
@@ -185,7 +185,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
               className={cn(
                 'w-full rounded-card',
                 collapsed ? 'justify-center' : 'justify-start gap-3',
-                'text-muted hover:text-ink hover:bg-ink/5 dark:hover:text-canvas dark:hover:bg-dark-card'
+                'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
