@@ -57,6 +57,13 @@ export async function loadBoard(): Promise<Board> {
 }
 
 async function createEmptyBoard(): Promise<Board> {
+  // Check again to prevent duplicates from race conditions
+  const { data: existing } = await supabase.from('boards').select('id').limit(1).single();
+  if (existing) {
+    // Board was created by another call — reload
+    return loadBoard();
+  }
+
   const boardId = uuidv4();
   const now = new Date().toISOString();
 
