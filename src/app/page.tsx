@@ -13,6 +13,7 @@ import AnalyticsPanel from '@/components/AnalyticsPanel';
 import ActivityPanel from '@/components/ActivityPanel';
 import TeamPanel from '@/components/TeamPanel';
 import Sidebar from '@/components/Sidebar';
+import NextActions from '@/components/NextActions';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useSearchParams } from 'next/navigation';
@@ -200,6 +201,14 @@ function BoardContent() {
     saveMembers(updated).catch(console.error);
   }
 
+  function handleSetNextAction(memberId: string, cardId: string | null) {
+    const updated = members.map(m =>
+      m.id === memberId ? { ...m, nextActionCardId: cardId } : m
+    );
+    setMembers(updated);
+    saveMembers(updated).catch(console.error);
+  }
+
   if (!board) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center animate-fade-in">
@@ -261,6 +270,16 @@ function BoardContent() {
             {/* Filter bar */}
             <div className="px-6 py-3 border-b border-border/50 flex-shrink-0">
               <FilterBar filters={filters} members={members} onChange={setFilters} />
+            </div>
+
+            {/* Next Actions */}
+            <div className="px-6 py-3 border-b border-border/50 flex-shrink-0">
+              <NextActions
+                columns={board.columns}
+                members={members}
+                onSetNextAction={handleSetNextAction}
+                onCardClick={(card, colId) => setSelectedCard({ card, columnId: colId })}
+              />
             </div>
 
             {/* Kanban board */}

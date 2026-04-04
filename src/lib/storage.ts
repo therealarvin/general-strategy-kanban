@@ -264,6 +264,7 @@ export async function loadMembers(): Promise<TeamMember[]> {
     name: m.name,
     initials: m.initials,
     color: m.color,
+    nextActionCardId: m.next_action_card_id ?? null,
   }));
 }
 
@@ -278,6 +279,7 @@ export async function saveMembers(members: TeamMember[]): Promise<void> {
         name: m.name,
         initials: m.initials,
         color: m.color,
+        next_action_card_id: m.nextActionCardId ?? null,
       }))
     );
     if (error) console.error('Failed to save members:', error.message);

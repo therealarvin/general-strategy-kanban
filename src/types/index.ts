@@ -77,6 +77,7 @@ export interface TeamMember {
   name: string;
   initials: string;
   color: string;
+  nextActionCardId?: string | null;
 }
 
 export const DEFAULT_LABELS: Label[] = [
