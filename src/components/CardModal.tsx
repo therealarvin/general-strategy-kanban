@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import {
   Calendar, Tag, User, CheckSquare, MessageSquare,
-  Plus, Trash2, Archive, Clock, Flag, X
+  Plus, Trash2, Archive, Clock, Flag, X, GitBranch
 } from 'lucide-react';
-import { Card, Label, DEFAULT_LABELS, PRIORITY_CONFIG, TeamMember } from '@/types';
+import { Card, Label, DEFAULT_LABELS, PRIORITY_CONFIG, TeamMember, Column } from '@/types';
 import { cn, formatRelativeTime, getChecklistProgress } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,18 +22,20 @@ import { Separator } from '@/components/ui/separator';
 interface CardModalProps {
   card: Card;
   members: TeamMember[];
+  columns: Column[];
   onUpdate: (card: Card) => void;
   onDelete: () => void;
   onClose: () => void;
 }
 
-export default function CardModal({ card, members, onUpdate, onDelete, onClose }: CardModalProps) {
+export default function CardModal({ card, members, columns, onUpdate, onDelete, onClose }: CardModalProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description);
   const [newCheckItem, setNewCheckItem] = useState('');
   const [newComment, setNewComment] = useState('');
   const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [showDepPicker, setShowDepPicker] = useState(false);
 
   const checkProgress = getChecklistProgress(card);
 
@@ -246,6 +248,66 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                     </button>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          <Separator className="bg-border" />
+
+          {/* Dependencies */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-brass font-semibold",
+                "flex items-center gap-1"
+              )}>
+                <GitBranch size={10} /> Dependencies
+              </FormLabel>
+              <Button
+                variant="link"
+                size="xs"
+                onClick={() => setShowDepPicker(!showDepPicker)}
+                className="text-xs text-brass hover:text-foreground"
+              >
+                {showDepPicker ? 'Done' : '+ Add'}
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(card.dependencies || []).map(depId => {
+                const depCard = columns.flatMap(c => c.cards).find(c => c.id === depId);
+                if (!depCard) return null;
+                const isDone = columns.some(c => c.title.toLowerCase().includes('done') && c.cards.some(cc => cc.id === depId));
+                return (
+                  <Badge
+                    key={depId}
+                    variant="secondary"
+                    className={cn('text-[11px] gap-1', isDone && 'line-through opacity-60')}
+                  >
+                    {depCard.title}
+                    <button
+                      onClick={() => updateField({ dependencies: card.dependencies.filter(d => d !== depId) })}
+                      className="ml-0.5 hover:text-destructive"
+                    >
+                      <X size={10} />
+                    </button>
+                  </Badge>
+                );
+              })}
+              {(!card.dependencies || card.dependencies.length === 0) && !showDepPicker && (
+                <span className="text-xs text-muted-foreground/60">No dependencies</span>
+              )}
+            </div>
+            {showDepPicker && (
+              <div className="flex flex-wrap gap-1.5 p-3 bg-muted rounded-card animate-fade-in max-h-40 overflow-y-auto">
+                {columns.flatMap(col => col.cards).filter(c => c.id !== card.id && !card.dependencies?.includes(c.id)).map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => updateField({ dependencies: [...(card.dependencies || []), c.id] })}
+                    className="px-2.5 py-1 rounded text-xs font-medium transition-all bg-card border border-border hover:border-accent/50"
+                  >
+                    {c.title}
+                  </button>
+                ))}
               </div>
             )}
           </div>

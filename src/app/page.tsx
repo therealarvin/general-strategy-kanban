@@ -283,7 +283,7 @@ function BoardContent() {
             </div>
 
             {/* Kanban board */}
-            <div className="flex-1 overflow-x-auto overflow-y-hidden">
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
               <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="board-columns" direction="horizontal" type="column">
                   {(provided) => (
@@ -371,6 +371,7 @@ function BoardContent() {
         <CardModal
           card={selectedCard.card}
           members={members}
+          columns={board.columns}
           onUpdate={handleUpdateCard}
           onDelete={handleDeleteCard}
           onClose={() => setSelectedCard(null)}

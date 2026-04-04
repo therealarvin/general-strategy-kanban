@@ -53,6 +53,7 @@ export default function KanbanColumn({
       updatedAt: new Date().toISOString(),
       archived: false,
       attachments: [],
+      dependencies: [],
     };
     onAddCard(column.id, card);
     setNewCardTitle('');

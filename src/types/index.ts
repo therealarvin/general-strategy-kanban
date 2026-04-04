@@ -42,6 +42,7 @@ export interface Card {
   coverColor?: string;
   estimatedHours?: number;
   attachments: string[];
+  dependencies: string[];
 }
 
 export interface Column {
