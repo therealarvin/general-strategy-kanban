@@ -814,10 +814,11 @@ export default function VaultPage() {
                 </div>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 flex flex-col p-4 min-h-0">
               <FileViewer
                 url={viewingFile.value}
                 filename={viewingFile.description || viewingFile.name}
+                className="flex-1"
               />
             </div>
           </div>

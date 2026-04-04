@@ -107,8 +107,8 @@ export default function FileViewer({ url, filename, className }: FileViewerProps
 
     case 'html':
       return (
-        <div className={cn('flex flex-col gap-2', className)}>
-          <div className="flex items-center gap-1">
+        <div className={cn('flex flex-col gap-2 h-full', className)}>
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Button
               variant={showCode ? 'ghost' : 'secondary'}
               size="sm"
@@ -127,15 +127,21 @@ export default function FileViewer({ url, filename, className }: FileViewerProps
             </Button>
           </div>
           {showCode ? (
-            <pre className="text-xs bg-secondary rounded-lg border border-border p-4 overflow-auto font-mono whitespace-pre-wrap" style={{ maxHeight: 500 }}>
+            <pre className="text-xs bg-secondary rounded-lg border border-border p-4 overflow-auto font-mono whitespace-pre-wrap flex-1">
               {htmlSource || 'Loading...'}
             </pre>
+          ) : htmlSource ? (
+            <iframe
+              srcDoc={htmlSource}
+              className="w-full flex-1 rounded-lg border border-border bg-white"
+              sandbox="allow-scripts allow-same-origin"
+              title={filename}
+            />
           ) : (
             <iframe
               src={url}
-              className="w-full rounded-lg border border-border bg-white"
-              style={{ minHeight: 500 }}
-              sandbox="allow-same-origin"
+              className="w-full flex-1 rounded-lg border border-border bg-white"
+              sandbox="allow-scripts allow-same-origin"
               title={filename}
             />
           )}
