@@ -20,6 +20,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import dynamic from 'next/dynamic';
 
 const DocumentEditor = dynamic(() => import('@/components/DocumentEditor'), { ssr: false });
+const FileViewer = dynamic(() => import('@/components/FileViewer'), { ssr: false });
 
 export default function VaultPage() {
   const [entries, setEntries] = useState<VaultEntry[]>([]);
@@ -52,6 +53,8 @@ export default function VaultPage() {
   const [docEditorName, setDocEditorName] = useState('');
   const [docEditorDesc, setDocEditorDesc] = useState('');
   const [docEditorFullscreen, setDocEditorFullscreen] = useState(false);
+  const [viewingFile, setViewingFile] = useState<VaultEntry | null>(null);
+  const [fileViewerFullscreen, setFileViewerFullscreen] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -259,7 +262,9 @@ export default function VaultPage() {
       <main className="ml-56 flex h-screen">
        <div className={cn(
          'overflow-y-auto p-6 transition-all',
-         docEditorEntry && !docEditorFullscreen ? 'w-[50%] flex-shrink-0' : docEditorEntry && docEditorFullscreen ? 'hidden' : 'flex-1'
+         (docEditorEntry && docEditorFullscreen) || (viewingFile && fileViewerFullscreen) ? 'hidden'
+           : (docEditorEntry || viewingFile) ? 'w-[50%] flex-shrink-0'
+           : 'flex-1'
        )}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -606,14 +611,22 @@ export default function VaultPage() {
                                   dangerouslySetInnerHTML={{ __html: entry.value || '<p class="text-muted-foreground">Click to edit document...</p>' }}
                                 />
                               ) : entry.category === 'file' ? (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={() => { setViewingFile(entry); setDocEditorEntry(null); }}
+                                  >
+                                    <Eye size={12} /> Preview
+                                  </Button>
                                   <a
                                     href={entry.value}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
                                   >
-                                    <Download size={12} /> Download file
+                                    <Download size={12} /> Download
                                   </a>
                                 </div>
                               ) : entry.category === 'credential' && isCredentialJson(entry.value) ? (
@@ -760,6 +773,52 @@ export default function VaultPage() {
                 <Save size={14} /> Save
               </Button>
               <Button variant="ghost" onClick={() => setDocEditorEntry(null)}>Close</Button>
+            </div>
+          </div>
+        )}
+
+        {/* File Viewer Panel */}
+        {viewingFile && !docEditorEntry && (
+          <div className={cn(
+            'border-l border-border flex flex-col bg-card transition-all',
+            fileViewerFullscreen ? 'flex-1' : 'w-[50%]'
+          )}>
+            <div className="px-6 py-4 border-b border-border flex-shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif font-semibold truncate">{viewingFile.name}</h3>
+                  {viewingFile.description && (
+                    <p className="text-xs text-muted-foreground truncate">{viewingFile.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="ghost" size="icon" onClick={() => window.open(viewingFile.value, '_blank')}>
+                        <ExternalLink size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Open in new tab</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="ghost" size="icon" onClick={() => setFileViewerFullscreen(!fileViewerFullscreen)}>
+                        {fileViewerFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{fileViewerFullscreen ? 'Split view' : 'Full screen'}</TooltipContent>
+                  </Tooltip>
+                  <Button variant="ghost" size="icon" onClick={() => { setViewingFile(null); setFileViewerFullscreen(false); }}>
+                    <X size={18} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <FileViewer
+                url={viewingFile.value}
+                filename={viewingFile.description || viewingFile.name}
+              />
             </div>
           </div>
         )}
