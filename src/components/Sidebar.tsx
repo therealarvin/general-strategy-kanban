@@ -131,7 +131,14 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
-                  onClick={() => router.push(item.href)}
+                  onClick={() => {
+                    // Force full navigation to clear search params when staying on same pathname
+                    if (item.href === '/' && pathname === '/') {
+                      window.location.href = '/';
+                    } else {
+                      router.push(item.href);
+                    }
+                  }}
                 >
                   <item.icon size={18} className="flex-shrink-0" />
                   {!collapsed && <span>{item.label}</span>}
