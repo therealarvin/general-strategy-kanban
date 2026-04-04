@@ -38,10 +38,10 @@ function calculateNextAction(
     for (const card of col.cards) {
       if (card.archived || card.assignee !== memberId) continue;
       const priorityScore = PRIORITY_WEIGHT[card.priority] || 1;
-      // Lower hours = higher urgency. No hours = treat as medium (4h)
-      const hours = card.estimatedHours || 4;
-      // Score: higher priority and lower hours = higher score
-      const score = priorityScore * 10 + (1 / hours);
+      // Score by priority first, then prefer lower hours as tiebreaker
+      // Cards without hours get no bonus (sort by priority only)
+      const hoursBonus = card.estimatedHours ? (1 / card.estimatedHours) : 0;
+      const score = priorityScore * 10 + hoursBonus;
       candidates.push({ card, columnId: col.id, score });
     }
   }
