@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard, Columns3, Shield, BarChart3, Activity,
   Settings, ChevronLeft, ChevronRight, Moon, Sun, Search,
@@ -24,9 +24,19 @@ const NAV_ITEMS = [
   { href: '/?view=team', icon: Users, label: 'Team' },
 ];
 
-export default function Sidebar({ darkMode, onToggleDark, onExport, onSearch }: SidebarProps) {
+export default function Sidebar(props: SidebarProps) {
+  return (
+    <Suspense>
+      <SidebarInner {...props} />
+    </Suspense>
+  );
+}
+
+function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get('view');
 
   return (
     <aside
@@ -70,9 +80,12 @@ export default function Sidebar({ darkMode, onToggleDark, onExport, onSearch }: 
       {/* Nav */}
       <nav className="flex-1 px-3 space-y-1">
         {NAV_ITEMS.map(item => {
-          const isActive = item.href === '/'
-            ? pathname === '/' && !item.href.includes('view=')
-            : pathname === item.href || (item.href.includes('view=') && typeof window !== 'undefined' && window.location.search.includes(item.href.split('?')[1]));
+          const itemView = item.href.includes('view=') ? item.href.split('view=')[1] : null;
+          const isActive = item.href === '/vault'
+            ? pathname === '/vault'
+            : itemView
+              ? pathname === '/' && currentView === itemView
+              : pathname === '/' && !currentView;
 
           return (
             <Link
