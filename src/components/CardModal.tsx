@@ -117,7 +117,7 @@ export default function CardModal({ card, members, onUpdate, onDelete, onClose }
                 className="text-sm bg-ink/5 dark:bg-dark rounded-card px-2 py-1 border border-ink/10 dark:border-dark-border focus:outline-none focus:border-brass"
               >
                 {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>{config.icon} {config.label}</option>
+                  <option key={key} value={key}>{config.label}</option>
                 ))}
               </select>
             </div>

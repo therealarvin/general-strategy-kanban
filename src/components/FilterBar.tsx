@@ -35,7 +35,7 @@ export default function FilterBar({ filters, members, onChange }: FilterBarProps
       >
         <option value="">All Priorities</option>
         {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
-          <option key={key} value={key}>{config.icon} {config.label}</option>
+          <option key={key} value={key}>{config.label}</option>
         ))}
       </select>
 

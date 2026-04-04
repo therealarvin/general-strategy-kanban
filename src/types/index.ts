@@ -96,16 +96,16 @@ export const DEFAULT_MEMBERS: TeamMember[] = [
 ];
 
 export const PRIORITY_CONFIG = {
-  low: { label: 'Low', color: '#2ecc71', icon: '↓' },
-  medium: { label: 'Medium', color: '#f39c12', icon: '→' },
-  high: { label: 'High', color: '#e67e22', icon: '↑' },
-  urgent: { label: 'Urgent', color: '#e74c3c', icon: '⚡' },
+  low: { label: 'Low', color: '#2ecc71', icon: 'arrow-down' },
+  medium: { label: 'Medium', color: '#f39c12', icon: 'arrow-right' },
+  high: { label: 'High', color: '#e67e22', icon: 'arrow-up' },
+  urgent: { label: 'Urgent', color: '#e74c3c', icon: 'zap' },
 };
 
 export const VAULT_CATEGORIES = {
-  'api-key': { label: 'API Key', icon: '🔑' },
-  'credential': { label: 'Credential', icon: '🔐' },
-  'link': { label: 'Link', icon: '🔗' },
-  'note': { label: 'Note', icon: '📝' },
-  'server': { label: 'Server', icon: '🖥️' },
+  'api-key': { label: 'API Key', icon: 'key' },
+  'credential': { label: 'Credential', icon: 'lock' },
+  'link': { label: 'Link', icon: 'link' },
+  'note': { label: 'Note', icon: 'file-text' },
+  'server': { label: 'Server', icon: 'server' },
 };

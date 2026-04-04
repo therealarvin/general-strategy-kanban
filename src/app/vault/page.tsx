@@ -7,6 +7,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { exportBoardAsJSON } from '@/lib/utils';
 import { Shield, Plus, Search, Eye, EyeOff, Copy, Trash2, Edit3, Save, X, Tag, ExternalLink, Moon, Sun } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import IconMap from '@/components/IconMap';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function VaultPage() {
@@ -158,7 +159,7 @@ export default function VaultPage() {
           >
             <option value="">All Categories</option>
             {Object.entries(VAULT_CATEGORIES).map(([key, config]) => (
-              <option key={key} value={key}>{config.icon} {config.label}</option>
+              <option key={key} value={key}>{config.label}</option>
             ))}
           </select>
         </div>
@@ -178,7 +179,7 @@ export default function VaultPage() {
                   className="w-full text-sm bg-ink/5 dark:bg-dark border border-ink/10 dark:border-dark-border rounded-card px-3 py-1.5 focus:outline-none focus:border-brass"
                 >
                   {Object.entries(VAULT_CATEGORIES).map(([key, config]) => (
-                    <option key={key} value={key}>{config.icon} {config.label}</option>
+                    <option key={key} value={key}>{config.label}</option>
                   ))}
                 </select>
               </div>
@@ -259,7 +260,7 @@ export default function VaultPage() {
             {groupedByCategory.map(group => (
               <div key={group.key}>
                 <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-brass mb-3 flex items-center gap-2">
-                  <span className="text-base">{group.icon}</span> {group.label}
+                  <IconMap name={group.icon} size={16} /> {group.label}
                   <span className="text-faint">({group.entries.length})</span>
                 </h3>
                 <div className="space-y-2">

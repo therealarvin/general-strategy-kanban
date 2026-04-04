@@ -3,6 +3,7 @@
 import { Column, PRIORITY_CONFIG } from '@/types';
 import { getBoardStats } from '@/lib/utils';
 import { BarChart3, AlertTriangle, Clock, CheckSquare, TrendingUp } from 'lucide-react';
+import IconMap from './IconMap';
 
 interface AnalyticsPanelProps {
   columns: Column[];
@@ -69,7 +70,7 @@ export default function AnalyticsPanel({ columns }: AnalyticsPanelProps) {
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
                   style={{ background: config.color }}
                 >
-                  {config.icon}
+                  <IconMap name={config.icon} size={16} />
                 </div>
                 <div>
                   <p className="text-lg font-serif font-semibold">{count}</p>

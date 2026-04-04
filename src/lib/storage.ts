@@ -1,43 +1,47 @@
-import { Board, Column, Card, VaultEntry, ActivityEntry, TeamMember, DEFAULT_MEMBERS, DEFAULT_LABELS } from '@/types';
+import { Board, Column, Card, VaultEntry, ActivityEntry, TeamMember, DEFAULT_MEMBERS } from '@/types';
 import { supabase } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 // ── Board ──────────────────────────────────────────────
 
 export async function loadBoard(): Promise<Board> {
-  const { data: boards } = await supabase
+  const { data: boards, error: boardErr } = await supabase
     .from('boards')
     .select('*')
     .limit(1)
     .single();
 
-  if (!boards) {
-    // Seed default board
-    const board = await seedDefaultBoard();
-    return board;
+  if (boardErr || !boards) {
+    console.warn('No board found, creating empty board:', boardErr?.message);
+    return createEmptyBoard();
   }
 
-  const { data: columns } = await supabase
+  const { data: columns, error: colErr } = await supabase
     .from('columns')
     .select('*')
     .eq('board_id', boards.id)
     .order('position');
 
+  if (colErr) console.error('Failed to load columns:', colErr.message);
+
   const columnIds = (columns || []).map(c => c.id);
-  const { data: cards } = columnIds.length > 0
-    ? await supabase
-        .from('cards')
-        .select('*')
-        .in('column_id', columnIds)
-        .order('position')
-    : { data: [] as Record<string, unknown>[] };
+  let cards: Record<string, unknown>[] = [];
+  if (columnIds.length > 0) {
+    const { data: cardData, error: cardErr } = await supabase
+      .from('cards')
+      .select('*')
+      .in('column_id', columnIds)
+      .order('position');
+    if (cardErr) console.error('Failed to load cards:', cardErr.message);
+    cards = cardData || [];
+  }
 
   const boardColumns: Column[] = (columns || []).map(col => ({
     id: col.id,
     title: col.title,
     limit: col.card_limit ?? undefined,
     color: col.color ?? undefined,
-    cards: (cards || [])
+    cards: cards
       .filter(c => c.column_id === col.id)
       .map(dbCardToCard),
   }));
@@ -51,12 +55,42 @@ export async function loadBoard(): Promise<Board> {
   };
 }
 
+async function createEmptyBoard(): Promise<Board> {
+  const boardId = uuidv4();
+  const now = new Date().toISOString();
+
+  const { error } = await supabase.from('boards').insert({ id: boardId, name: 'General Strategy' });
+  if (error) console.error('Failed to create board:', error.message);
+
+  const defaultColumns = [
+    { id: 'col-backlog', title: 'Backlog', position: 0 },
+    { id: 'col-todo', title: 'To Do', position: 1 },
+    { id: 'col-progress', title: 'In Progress', position: 2 },
+    { id: 'col-review', title: 'In Review', position: 3 },
+    { id: 'col-done', title: 'Done', position: 4 },
+  ];
+
+  const { error: colErr } = await supabase.from('columns').insert(
+    defaultColumns.map(c => ({ ...c, board_id: boardId }))
+  );
+  if (colErr) console.error('Failed to create columns:', colErr.message);
+
+  return {
+    id: boardId,
+    name: 'General Strategy',
+    columns: defaultColumns.map(col => ({ id: col.id, title: col.title, cards: [] })),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export async function saveBoard(board: Board): Promise<void> {
   const now = new Date().toISOString();
 
-  await supabase
+  const { error: boardErr } = await supabase
     .from('boards')
     .upsert({ id: board.id, name: board.name, updated_at: now });
+  if (boardErr) console.error('Failed to save board:', boardErr.message);
 
   // Get existing columns to diff
   const { data: existingCols } = await supabase
@@ -67,15 +101,16 @@ export async function saveBoard(board: Board): Promise<void> {
   const existingColIds = new Set((existingCols || []).map(c => c.id));
   const newColIds = new Set(board.columns.map(c => c.id));
 
-  // Delete removed columns
+  // Delete removed columns (cascades to cards)
   const removedColIds = [...existingColIds].filter(id => !newColIds.has(id));
   if (removedColIds.length > 0) {
-    await supabase.from('columns').delete().in('id', removedColIds);
+    const { error } = await supabase.from('columns').delete().in('id', removedColIds);
+    if (error) console.error('Failed to delete columns:', error.message);
   }
 
   // Upsert columns
   if (board.columns.length > 0) {
-    await supabase.from('columns').upsert(
+    const { error } = await supabase.from('columns').upsert(
       board.columns.map((col, i) => ({
         id: col.id,
         board_id: board.id,
@@ -85,55 +120,57 @@ export async function saveBoard(board: Board): Promise<void> {
         color: col.color ?? null,
       }))
     );
+    if (error) console.error('Failed to upsert columns:', error.message);
   }
 
   // Get all existing card IDs for this board's columns
   const allColIds = board.columns.map(c => c.id);
-  const { data: existingCards } = allColIds.length > 0
-    ? await supabase.from('cards').select('id').in('column_id', allColIds)
-    : { data: [] };
+  let existingCardIds = new Set<string>();
+  if (allColIds.length > 0) {
+    const { data: existingCards } = await supabase
+      .from('cards')
+      .select('id')
+      .in('column_id', allColIds);
+    existingCardIds = new Set((existingCards || []).map(c => c.id));
+  }
 
-  const existingCardIds = new Set((existingCards || []).map(c => c.id));
   const allNewCardIds = new Set(board.columns.flatMap(col => col.cards.map(c => c.id)));
 
   // Delete removed cards
   const removedCardIds = [...existingCardIds].filter(id => !allNewCardIds.has(id));
   if (removedCardIds.length > 0) {
-    await supabase.from('cards').delete().in('id', removedCardIds);
+    const { error } = await supabase.from('cards').delete().in('id', removedCardIds);
+    if (error) console.error('Failed to delete cards:', error.message);
   }
 
   // Upsert all cards
-  const allCards = board.columns.flatMap((col, _colIdx) =>
+  const allCards = board.columns.flatMap(col =>
     col.cards.map((card, cardIdx) => cardToDbCard(card, col.id, cardIdx))
   );
   if (allCards.length > 0) {
-    await supabase.from('cards').upsert(allCards);
+    const { error } = await supabase.from('cards').upsert(allCards);
+    if (error) console.error('Failed to upsert cards:', error.message);
   }
 }
 
 // ── Vault ──────────────────────────────────────────────
 
 export async function loadVault(): Promise<VaultEntry[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vault_entries')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (!data || data.length === 0) {
-    const sample = getSampleVault();
-    await saveVault(sample);
-    return sample;
-  }
-
-  return data.map(dbVaultToVault);
+  if (error) console.error('Failed to load vault:', error.message);
+  return (data || []).map(dbVaultToVault);
 }
 
 export async function saveVault(entries: VaultEntry[]): Promise<void> {
-  // Replace all vault entries
-  await supabase.from('vault_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error: delErr } = await supabase.from('vault_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (delErr) console.error('Failed to clear vault:', delErr.message);
 
   if (entries.length > 0) {
-    await supabase.from('vault_entries').insert(
+    const { error } = await supabase.from('vault_entries').insert(
       entries.map(e => ({
         id: e.id,
         category: e.category,
@@ -146,17 +183,20 @@ export async function saveVault(entries: VaultEntry[]): Promise<void> {
         updated_at: e.updatedAt,
       }))
     );
+    if (error) console.error('Failed to save vault:', error.message);
   }
 }
 
 // ── Activity ───────────────────────────────────────────
 
 export async function loadActivity(): Promise<ActivityEntry[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('activity_entries')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(200);
+
+  if (error) console.error('Failed to load activity:', error.message);
 
   return (data || []).map(a => ({
     id: a.id,
@@ -169,11 +209,11 @@ export async function loadActivity(): Promise<ActivityEntry[]> {
 }
 
 export async function saveActivity(entries: ActivityEntry[]): Promise<void> {
-  // Clear all activity
-  await supabase.from('activity_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error: delErr } = await supabase.from('activity_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (delErr) console.error('Failed to clear activity:', delErr.message);
 
   if (entries.length > 0) {
-    await supabase.from('activity_entries').insert(
+    const { error } = await supabase.from('activity_entries').insert(
       entries.slice(0, 200).map(e => ({
         id: e.id,
         action: e.action,
@@ -183,24 +223,28 @@ export async function saveActivity(entries: ActivityEntry[]): Promise<void> {
         created_at: e.timestamp,
       }))
     );
+    if (error) console.error('Failed to save activity:', error.message);
   }
 }
 
 export async function addActivity(action: string, cardTitle?: string, columnTitle?: string): Promise<void> {
-  await supabase.from('activity_entries').insert({
+  const { error } = await supabase.from('activity_entries').insert({
     action,
     card_title: cardTitle ?? null,
     column_title: columnTitle ?? null,
     author: 'Arvin',
   });
+  if (error) console.error('Failed to add activity:', error.message);
 }
 
 // ── Members ────────────────────────────────────────────
 
 export async function loadMembers(): Promise<TeamMember[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('team_members')
     .select('*');
+
+  if (error) console.error('Failed to load members:', error.message);
 
   if (!data || data.length === 0) {
     await saveMembers(DEFAULT_MEMBERS);
@@ -216,10 +260,11 @@ export async function loadMembers(): Promise<TeamMember[]> {
 }
 
 export async function saveMembers(members: TeamMember[]): Promise<void> {
-  await supabase.from('team_members').delete().neq('id', '___none___');
+  const { error: delErr } = await supabase.from('team_members').delete().neq('id', '___none___');
+  if (delErr) console.error('Failed to clear members:', delErr.message);
 
   if (members.length > 0) {
-    await supabase.from('team_members').insert(
+    const { error } = await supabase.from('team_members').insert(
       members.map(m => ({
         id: m.id,
         name: m.name,
@@ -227,6 +272,7 @@ export async function saveMembers(members: TeamMember[]): Promise<void> {
         color: m.color,
       }))
     );
+    if (error) console.error('Failed to save members:', error.message);
   }
 }
 
@@ -249,12 +295,12 @@ function dbCardToCard(row: Record<string, unknown>): Card {
     id: row.id as string,
     title: row.title as string,
     description: (row.description as string) || '',
-    labels: (row.labels as Label[] | null) || [],
+    labels: (row.labels as { id: string; name: string; color: string }[] | null) || [],
     assignee: (row.assignee as string) || '',
     dueDate: (row.due_date as string) || null,
     priority: (row.priority as Card['priority']) || 'low',
-    checklist: (row.checklist as ChecklistItem[] | null) || [],
-    comments: (row.comments as Comment[] | null) || [],
+    checklist: (row.checklist as { id: string; text: string; completed: boolean }[] | null) || [],
+    comments: (row.comments as { id: string; author: string; text: string; createdAt: string }[] | null) || [],
     attachments: (row.attachments as string[] | null) || [],
     archived: (row.archived as boolean) || false,
     coverColor: (row.cover_color as string) ?? undefined,
@@ -263,10 +309,6 @@ function dbCardToCard(row: Record<string, unknown>): Card {
     updatedAt: row.updated_at as string,
   };
 }
-
-type Label = { id: string; name: string; color: string };
-type ChecklistItem = { id: string; text: string; completed: boolean };
-type Comment = { id: string; author: string; text: string; createdAt: string };
 
 function cardToDbCard(card: Card, columnId: string, position: number) {
   return {
@@ -302,98 +344,4 @@ function dbVaultToVault(row: Record<string, unknown>): VaultEntry {
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
-}
-
-async function seedDefaultBoard(): Promise<Board> {
-  const boardId = uuidv4();
-  const now = new Date().toISOString();
-
-  await supabase.from('boards').insert({ id: boardId, name: 'General Strategy' });
-
-  const defaultColumns = [
-    { id: 'col-backlog', title: 'Backlog', position: 0 },
-    { id: 'col-todo', title: 'To Do', position: 1 },
-    { id: 'col-progress', title: 'In Progress', position: 2 },
-    { id: 'col-review', title: 'In Review', position: 3 },
-    { id: 'col-done', title: 'Done', position: 4 },
-  ];
-
-  await supabase.from('columns').insert(
-    defaultColumns.map(c => ({ ...c, board_id: boardId }))
-  );
-
-  const defaultCards: { col: string; title: string; desc: string; priority: Card['priority']; labelIds: string[] }[] = [
-    { col: 'col-backlog', title: 'Set up analytics dashboard', desc: 'Implement Vercel Analytics or Plausible on generalstrategy.co', priority: 'low', labelIds: ['l3', 'l8'] },
-    { col: 'col-backlog', title: 'SEO metadata audit', desc: 'Add proper meta tags, OG images, and structured data across all pages', priority: 'medium', labelIds: ['l3'] },
-    { col: 'col-backlog', title: 'Lighthouse API documentation', desc: 'Write comprehensive API docs for the simulation engine endpoints', priority: 'low', labelIds: ['l6', 'l8'] },
-    { col: 'col-todo', title: 'Cold email campaign v2', desc: 'Draft new outreach templates targeting supply chain companies', priority: 'high', labelIds: ['l7'] },
-    { col: 'col-todo', title: 'Agency Platform onboarding flow', desc: 'Build guided setup wizard for new client deployments', priority: 'medium', labelIds: ['l2'] },
-    { col: 'col-progress', title: 'Website performance optimization', desc: 'Reduce LCP below 2.5s, optimize image loading and font delivery', priority: 'high', labelIds: ['l3'] },
-    { col: 'col-review', title: 'Client proposal template', desc: 'Standardized proposal deck for PE portfolio company pitches', priority: 'medium', labelIds: ['l7', 'l5'] },
-    { col: 'col-done', title: 'Fix booking button', desc: 'Calendly integration was broken — fixed routing and embed', priority: 'urgent', labelIds: ['l1'] },
-    { col: 'col-done', title: 'Brand guide documentation', desc: 'Complete brand reference with colors, typography, components', priority: 'medium', labelIds: ['l5', 'l8'] },
-  ];
-
-  const cards = defaultCards.map((c, i) => ({
-    id: uuidv4(),
-    column_id: c.col,
-    title: c.title,
-    description: c.desc,
-    assignee: 'm1',
-    due_date: null,
-    priority: c.priority,
-    labels: c.labelIds.map(id => DEFAULT_LABELS.find(l => l.id === id)!).filter(Boolean),
-    checklist: [],
-    comments: [],
-    attachments: [],
-    archived: false,
-    cover_color: null,
-    estimated_hours: null,
-    position: i,
-    created_at: now,
-    updated_at: now,
-  }));
-
-  await supabase.from('cards').insert(cards);
-
-  const boardColumns: Column[] = defaultColumns.map(col => ({
-    id: col.id,
-    title: col.title,
-    cards: cards
-      .filter(c => c.column_id === col.id)
-      .map(c => ({
-        id: c.id,
-        title: c.title,
-        description: c.description,
-        labels: c.labels as { id: string; name: string; color: string }[],
-        assignee: c.assignee,
-        dueDate: null,
-        priority: c.priority as Card['priority'],
-        checklist: [],
-        comments: [],
-        attachments: [],
-        archived: false,
-        createdAt: now,
-        updatedAt: now,
-      })),
-  }));
-
-  return {
-    id: boardId,
-    name: 'General Strategy',
-    columns: boardColumns,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function getSampleVault(): VaultEntry[] {
-  const now = new Date().toISOString();
-  return [
-    { id: uuidv4(), category: 'link', name: 'GS Website', value: 'https://generalstrategy.co', description: 'Main marketing website (Namecheap hosting)', tags: ['website', 'production'], createdAt: now, updatedAt: now, hidden: false },
-    { id: uuidv4(), category: 'link', name: 'GS Documentation', value: 'https://ygali04.github.io/general-strategy-docs/', description: 'Internal docs site (MkDocs, private repo)', tags: ['docs', 'internal'], createdAt: now, updatedAt: now, hidden: false },
-    { id: uuidv4(), category: 'api-key', name: 'OpenRouter API Key', value: 'sk-or-xxxx-placeholder', description: 'Used by Agency Platform for LLM routing', tags: ['api', 'llm', 'agency-platform'], createdAt: now, updatedAt: now, hidden: true },
-    { id: uuidv4(), category: 'server', name: 'Lighthouse Server', value: 'localhost:5000', description: 'Flask dev server for simulation engine', tags: ['lighthouse', 'dev'], createdAt: now, updatedAt: now, hidden: false },
-    { id: uuidv4(), category: 'credential', name: 'Namecheap Account', value: 'See 1Password', description: 'Domain registrar and hosting for generalstrategy.co', tags: ['hosting', 'domain'], createdAt: now, updatedAt: now, hidden: true },
-  ];
 }

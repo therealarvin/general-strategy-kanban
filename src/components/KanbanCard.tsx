@@ -4,6 +4,7 @@ import { Card, PRIORITY_CONFIG, TeamMember } from '@/types';
 import { isOverdue, isDueSoon, formatDate, getChecklistProgress } from '@/lib/utils';
 import { Calendar, CheckSquare, MessageSquare, Clock, Paperclip } from 'lucide-react';
 import { Draggable } from '@hello-pangea/dnd';
+import IconMap from './IconMap';
 
 interface KanbanCardProps {
   card: Card;
@@ -43,7 +44,7 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
               className={`text-xs font-medium ${card.priority === 'urgent' ? 'pulse-urgent' : ''}`}
               style={{ color: priority.color }}
             >
-              {priority.icon} {priority.label}
+              <IconMap name={priority.icon} size={12} /> {priority.label}
             </span>
             {card.estimatedHours && (
               <span className="text-[10px] text-faint flex items-center gap-0.5 ml-auto">
