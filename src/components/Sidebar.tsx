@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Columns3, Shield, BarChart3, Activity,
   ChevronLeft, ChevronRight, Moon, Sun, Search,
@@ -62,6 +61,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view');
+  const router = useRouter();
 
   return (
     <TooltipProvider delay={300}>
@@ -131,7 +131,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
-                  render={(props) => <Link {...props} href={item.href} />}
+                  onClick={() => router.push(item.href)}
                 >
                   <item.icon size={18} className="flex-shrink-0" />
                   {!collapsed && <span>{item.label}</span>}

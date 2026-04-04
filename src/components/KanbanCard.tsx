@@ -103,13 +103,24 @@ export default function KanbanCard({ card, index, members, onClick }: KanbanCard
 
               {/* Checklist */}
               {card.checklist.length > 0 && (
-                <span className={cn(
-                  'flex items-center gap-1 text-[10px] font-medium',
-                  checkProgress.percent === 100 ? 'text-green-600' : 'text-muted-foreground'
-                )}>
-                  <CheckSquare size={10} />
-                  {checkProgress.done}/{checkProgress.total}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    'flex items-center gap-1 text-[10px] font-medium',
+                    checkProgress.percent === 100 ? 'text-green-600' : 'text-muted-foreground'
+                  )}>
+                    <CheckSquare size={10} />
+                    {checkProgress.done}/{checkProgress.total}
+                  </span>
+                  <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all',
+                        checkProgress.percent === 100 ? 'bg-green-500' : 'bg-accent'
+                      )}
+                      style={{ width: `${checkProgress.percent}%` }}
+                    />
+                  </div>
+                </div>
               )}
 
               {/* Comments */}
