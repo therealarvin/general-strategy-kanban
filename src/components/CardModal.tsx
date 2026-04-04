@@ -36,6 +36,7 @@ export default function CardModal({ card, members, columns, onUpdate, onDelete, 
   const [newComment, setNewComment] = useState('');
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [showDepPicker, setShowDepPicker] = useState(false);
+  const [newExtDep, setNewExtDep] = useState('');
 
   const checkProgress = getChecklistProgress(card);
 
@@ -310,6 +311,57 @@ export default function CardModal({ card, members, columns, onUpdate, onDelete, 
                 ))}
               </div>
             )}
+
+            {/* External Dependencies */}
+            <div className="mt-3 space-y-1.5">
+              <FormLabel className={cn(
+                "text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold",
+                "flex items-center gap-1"
+              )}>
+                External Dependencies
+              </FormLabel>
+              <div className="flex flex-wrap gap-1.5">
+                {(card.externalDependencies || []).map((dep, i) => (
+                  <Badge key={i} variant="outline" className="text-[11px] gap-1 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                    {dep}
+                    <button
+                      onClick={() => updateField({ externalDependencies: card.externalDependencies.filter((_, j) => j !== i) })}
+                      className="ml-0.5 hover:text-destructive"
+                    >
+                      <X size={10} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newExtDep}
+                  onChange={e => setNewExtDep(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newExtDep.trim()) {
+                      e.preventDefault();
+                      updateField({ externalDependencies: [...(card.externalDependencies || []), newExtDep.trim()] });
+                      setNewExtDep('');
+                    }
+                  }}
+                  placeholder="e.g. Waiting on client approval..."
+                  className="text-xs h-7"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-accent text-xs"
+                  onClick={() => {
+                    if (newExtDep.trim()) {
+                      updateField({ externalDependencies: [...(card.externalDependencies || []), newExtDep.trim()] });
+                      setNewExtDep('');
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
           </div>
 
           <Separator className="bg-border" />

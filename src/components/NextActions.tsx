@@ -56,7 +56,9 @@ function calculateNextAction(
       if (card.archived || card.assignee !== memberId) continue;
 
       const blocked = isBlocked(card, columns);
-      if (blocked) continue; // Skip blocked cards entirely
+      if (blocked) continue;
+      // Skip cards with unresolved external dependencies from auto-selection
+      if (card.externalDependencies && card.externalDependencies.length > 0) continue;
 
       const priorityScore = PRIORITY_WEIGHT[card.priority] || 1;
       // Hours factor: quick tasks get a significant boost
@@ -170,11 +172,12 @@ export default function NextActions({ columns, members, onSetNextAction, onCardC
                         <X size={12} />
                       </Button>
                     </div>
-                    <div className="max-h-32 overflow-y-auto space-y-0.5">
+                    <div className="max-h-32 overflow-y-auto space-y-0.5 min-w-0">
                       {allCards
                         .filter(c => c.card.assignee === member.id && !isDoneColumn(columns.find(col => col.id === c.columnId)!))
                         .map(({ card }) => {
                           const blocked = isBlocked(card, columns);
+                          const hasExtDeps = card.externalDependencies && card.externalDependencies.length > 0;
                           return (
                             <button
                               key={card.id}
@@ -184,13 +187,13 @@ export default function NextActions({ columns, members, onSetNextAction, onCardC
                               }}
                               disabled={blocked}
                               className={cn(
-                                'w-full text-left text-[11px] px-2 py-1 rounded truncate',
+                                'w-full text-left text-[11px] px-2 py-1 rounded block overflow-hidden text-ellipsis whitespace-nowrap',
                                 blocked ? 'opacity-40 cursor-not-allowed line-through' : 'hover:bg-muted transition-colors',
                                 card.id === member.nextActionCardId && 'bg-accent/10 text-accent'
                               )}
+                              title={card.title + (blocked ? ' (blocked)' : '') + (hasExtDeps ? ' (ext. dep)' : '')}
                             >
                               {card.title}
-                              {blocked && ' (blocked)'}
                             </button>
                           );
                         })}

@@ -43,6 +43,7 @@ export interface Card {
   estimatedHours?: number;
   attachments: string[];
   dependencies: string[];
+  externalDependencies: string[];
 }
 
 export interface Column {

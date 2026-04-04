@@ -54,6 +54,7 @@ export default function KanbanColumn({
       archived: false,
       attachments: [],
       dependencies: [],
+      externalDependencies: [],
     };
     onAddCard(column.id, card);
     setNewCardTitle('');
