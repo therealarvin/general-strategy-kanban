@@ -31,10 +31,14 @@ export default function VaultPage() {
   const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
-    setEntries(loadVault());
-    const theme = loadTheme();
-    setDarkMode(theme === 'dark');
-    if (theme === 'dark') document.documentElement.classList.add('dark');
+    async function init() {
+      const v = await loadVault();
+      setEntries(v);
+      const theme = loadTheme();
+      setDarkMode(theme === 'dark');
+      if (theme === 'dark') document.documentElement.classList.add('dark');
+    }
+    init();
   }, []);
 
   const toggleDark = useCallback(() => {
@@ -46,7 +50,7 @@ export default function VaultPage() {
 
   function update(updated: VaultEntry[]) {
     setEntries(updated);
-    saveVault(updated);
+    saveVault(updated).catch(console.error);
   }
 
   function addEntry() {

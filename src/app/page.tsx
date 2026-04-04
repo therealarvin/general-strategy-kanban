@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { Board, Card, Column, TeamMember } from '@/types';
+import { Board, Card, Column, TeamMember, ActivityEntry } from '@/types';
 import { loadBoard, saveBoard, loadMembers, saveMembers, loadTheme, saveTheme, loadActivity, saveActivity, addActivity } from '@/lib/storage';
 import { filterCards, exportBoardAsJSON } from '@/lib/utils';
 import KanbanColumn from '@/components/KanbanColumn';
@@ -27,7 +27,7 @@ function BoardContent() {
   const [darkMode, setDarkMode] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ card: Card; columnId: string } | null>(null);
-  const [activityEntries, setActivityEntries] = useState<ReturnType<typeof loadActivity>>([]);
+  const [activityEntries, setActivityEntries] = useState<ActivityEntry[]>([]);
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [filters, setFilters] = useState({
@@ -40,12 +40,16 @@ function BoardContent() {
 
   // Load data
   useEffect(() => {
-    setBoard(loadBoard());
-    setMembers(loadMembers());
-    setActivityEntries(loadActivity());
-    const theme = loadTheme();
-    setDarkMode(theme === 'dark');
-    if (theme === 'dark') document.documentElement.classList.add('dark');
+    async function init() {
+      const [b, m, a] = await Promise.all([loadBoard(), loadMembers(), loadActivity()]);
+      setBoard(b);
+      setMembers(m);
+      setActivityEntries(a);
+      const theme = loadTheme();
+      setDarkMode(theme === 'dark');
+      if (theme === 'dark') document.documentElement.classList.add('dark');
+    }
+    init();
   }, []);
 
   // Keyboard shortcuts
@@ -70,7 +74,7 @@ function BoardContent() {
 
   const updateBoard = useCallback((updated: Board) => {
     setBoard(updated);
-    saveBoard(updated);
+    saveBoard(updated).catch(console.error);
   }, []);
 
   const toggleDark = useCallback(() => {
@@ -79,6 +83,11 @@ function BoardContent() {
     saveTheme(next ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', next);
   }, [darkMode]);
+
+  async function refreshActivity() {
+    const entries = await loadActivity();
+    setActivityEntries(entries);
+  }
 
   // Drag & drop
   function onDragEnd(result: DropResult) {
@@ -102,8 +111,7 @@ function BoardContent() {
       destCards.splice(destination.index, 0, moved);
       srcCol.cards = srcCards;
       destCol.cards = destCards;
-      addActivity('moved', moved.title, `${srcCol.title} → ${destCol.title}`);
-      setActivityEntries(loadActivity());
+      addActivity('moved', moved.title, `${srcCol.title} → ${destCol.title}`).then(refreshActivity);
     }
 
     updateBoard({ ...board, columns });
@@ -116,8 +124,7 @@ function BoardContent() {
       col.id === columnId ? { ...col, cards: [...col.cards, card] } : col
     );
     updateBoard({ ...board, columns });
-    addActivity('created', card.title, board.columns.find(c => c.id === columnId)?.title);
-    setActivityEntries(loadActivity());
+    addActivity('created', card.title, board.columns.find(c => c.id === columnId)?.title).then(refreshActivity);
   }
 
   function handleUpdateCard(updatedCard: Card) {
@@ -129,8 +136,7 @@ function BoardContent() {
     );
     updateBoard({ ...board, columns });
     setSelectedCard({ ...selectedCard, card: updatedCard });
-    addActivity('updated', updatedCard.title);
-    setActivityEntries(loadActivity());
+    addActivity('updated', updatedCard.title).then(refreshActivity);
   }
 
   function handleDeleteCard() {
@@ -141,8 +147,7 @@ function BoardContent() {
         : col
     );
     updateBoard({ ...board, columns });
-    addActivity('deleted', selectedCard.card.title);
-    setActivityEntries(loadActivity());
+    addActivity('deleted', selectedCard.card.title).then(refreshActivity);
     setSelectedCard(null);
   }
 
@@ -151,8 +156,7 @@ function BoardContent() {
     if (!board || !newColumnTitle.trim()) return;
     const newCol: Column = { id: uuidv4(), title: newColumnTitle.trim(), cards: [] };
     updateBoard({ ...board, columns: [...board.columns, newCol] });
-    addActivity('created column', newColumnTitle.trim());
-    setActivityEntries(loadActivity());
+    addActivity('created column', newColumnTitle.trim()).then(refreshActivity);
     setNewColumnTitle('');
     setAddingColumn(false);
   }
@@ -161,8 +165,7 @@ function BoardContent() {
     if (!board) return;
     const col = board.columns.find(c => c.id === columnId);
     updateBoard({ ...board, columns: board.columns.filter(c => c.id !== columnId) });
-    addActivity('deleted column', col?.title);
-    setActivityEntries(loadActivity());
+    addActivity('deleted column', col?.title).then(refreshActivity);
   }
 
   function handleRenameColumn(columnId: string, name: string) {
@@ -173,7 +176,7 @@ function BoardContent() {
 
   function handleUpdateMembers(updated: TeamMember[]) {
     setMembers(updated);
-    saveMembers(updated);
+    saveMembers(updated).catch(console.error);
   }
 
   if (!board) return (
@@ -221,7 +224,7 @@ function BoardContent() {
             {view === 'activity' && (
               <ActivityPanel
                 entries={activityEntries}
-                onClear={() => { saveActivity([]); setActivityEntries([]); }}
+                onClear={() => { saveActivity([]).catch(console.error); setActivityEntries([]); }}
               />
             )}
             {view === 'team' && (
