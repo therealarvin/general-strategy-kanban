@@ -1,10 +1,11 @@
 'use client';
 
 import { useAuth } from '@/lib/auth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mail, Loader2 } from 'lucide-react';
+import { Mail, Loader2, ShieldX } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading, signIn } = useAuth();
@@ -12,8 +13,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) { setAllowed(null); return; }
+    // Check if user's email is in the allowlist
+    supabase
+      .from('allowed_users')
+      .select('email')
+      .eq('email', user.email)
+      .single()
+      .then(({ data }) => {
+        setAllowed(!!data);
+      });
+  }, [user]);
+
+  if (loading || (user && allowed === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center animate-fade-in">
@@ -21,6 +36,26 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             <span className="text-primary-foreground font-serif text-lg font-semibold">GS</span>
           </div>
           <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // User is logged in but not on the allowlist
+  if (user && allowed === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-full max-w-sm mx-auto p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldX size={28} className="text-destructive" />
+          </div>
+          <h2 className="font-serif text-xl font-semibold mb-2">Access Denied</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            <strong>{user.email}</strong> is not authorized. Ask an admin to add your email.
+          </p>
+          <Button variant="ghost" onClick={async () => { await supabase.auth.signOut(); }}>
+            Sign out
+          </Button>
         </div>
       </div>
     );

@@ -5,7 +5,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Columns3, Shield, BarChart3, Activity,
   ChevronLeft, ChevronRight, Moon, Sun, Search,
-  Download, Users, UserCheck, Bot, Bell, LogOut
+  Download, Users, UserCheck, Bot, Bell, LogOut, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { href: '/?view=analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/?view=activity', icon: Activity, label: 'Activity' },
   { href: '/?view=team', icon: Users, label: 'Team' },
+  { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function Sidebar(props: SidebarProps) {
