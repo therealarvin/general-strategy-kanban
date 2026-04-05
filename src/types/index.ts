@@ -141,6 +141,19 @@ export const CONTACT_STATUSES = {
   'closed-lost': { label: 'Closed Lost', color: '#e74c3c' },
 };
 
+// ── Reminders ──
+
+export interface Reminder {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  completed: boolean;
+  relatedContactId: string | null;
+  relatedCardId: string | null;
+  createdAt: string;
+}
+
 export const VAULT_CATEGORIES = {
   'api-key': { label: 'API Key', icon: 'key' },
   'credential': { label: 'Credential', icon: 'lock' },
