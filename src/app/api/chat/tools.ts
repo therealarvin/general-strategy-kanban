@@ -178,6 +178,7 @@ export const tools = [
           due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format' },
           related_contact_id: { type: 'string', description: 'Optional contact ID this reminder is about' },
           related_card_id: { type: 'string', description: 'Optional card ID this reminder is about' },
+          is_group: { type: 'boolean', description: 'If true, reminder is visible to all team members. Default false (personal).' },
         },
         required: ['title', 'due_date'],
       },
@@ -400,6 +401,8 @@ async function setReminder(args: Record<string, unknown>) {
     due_date: args.due_date,
     related_contact_id: args.related_contact_id || null,
     related_card_id: args.related_card_id || null,
+    user_id: args._userId || null,
+    is_group: args.is_group || false,
   });
   if (error) return JSON.stringify({ error: error.message });
   return JSON.stringify({ success: true, reminder_id: id });

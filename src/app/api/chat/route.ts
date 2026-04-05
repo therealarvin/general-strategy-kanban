@@ -30,7 +30,7 @@ Today's date is ${new Date().toISOString().slice(0, 10)}.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages, userId } = await req.json();
 
     const chatMessages = [
       { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fn = (toolCall as any).function;
         const args = JSON.parse(fn.arguments);
-        const result = await executeTool(fn.name, args);
+        const result = await executeTool(fn.name, { ...args, _userId: userId });
         chatMessages.push({
           role: 'tool' as const,
           tool_call_id: toolCall.id,

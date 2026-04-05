@@ -5,9 +5,10 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Columns3, Shield, BarChart3, Activity,
   ChevronLeft, ChevronRight, Moon, Sun, Search,
-  Download, Users, UserCheck, Bot
+  Download, Users, UserCheck, Bot, Bell, LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { href: '/vault', icon: Shield, label: 'Vault' },
   { href: '/outreach', icon: UserCheck, label: 'Outreach' },
   { href: '/assistant', icon: Bot, label: 'Assistant' },
+  { href: '/reminders', icon: Bell, label: 'Reminders' },
   { href: '/?view=analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/?view=activity', icon: Activity, label: 'Activity' },
   { href: '/?view=team', icon: Users, label: 'Team' },
@@ -64,6 +66,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view');
   const router = useRouter();
+  const { user, signOut } = useAuth();
 
   return (
     <TooltipProvider delay={300}>
@@ -201,6 +204,24 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
               {!collapsed && <span>Collapse</span>}
             </Button>
           </NavItemWithTooltip>
+
+          {user && (
+            <NavItemWithTooltip collapsed={collapsed} label="Sign Out">
+              <Button
+                variant="ghost"
+                size={collapsed ? 'icon' : 'default'}
+                onClick={signOut}
+                className={cn(
+                  'w-full rounded-card',
+                  collapsed ? 'justify-center' : 'justify-start gap-3',
+                  'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                <LogOut size={18} />
+                {!collapsed && <span className="truncate text-xs">{user.email}</span>}
+              </Button>
+            </NavItemWithTooltip>
+          )}
         </div>
       </aside>
     </TooltipProvider>
