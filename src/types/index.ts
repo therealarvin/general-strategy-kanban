@@ -105,6 +105,42 @@ export const PRIORITY_CONFIG = {
   urgent: { label: 'Urgent', color: '#e74c3c', icon: 'zap' },
 };
 
+// ── Contacts / CRM ──
+
+export interface Contact {
+  id: string;
+  name: string;
+  company: string;
+  title: string;
+  email: string;
+  phone: string;
+  contactType: 'lead' | 'investor' | 'referral' | 'partner' | 'other';
+  status: 'lead' | 'contacted' | 'responded' | 'meeting' | 'closed-won' | 'closed-lost';
+  lastContacted: string | null;
+  source: string;
+  notes: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const CONTACT_TYPES = {
+  lead: { label: 'Lead', color: '#3498db' },
+  investor: { label: 'Investor', color: '#9b59b6' },
+  referral: { label: 'Referral', color: '#2ecc71' },
+  partner: { label: 'Partner', color: '#e67e22' },
+  other: { label: 'Other', color: '#777777' },
+};
+
+export const CONTACT_STATUSES = {
+  lead: { label: 'Lead', color: '#aaaaaa' },
+  contacted: { label: 'Contacted', color: '#3498db' },
+  responded: { label: 'Responded', color: '#2ecc71' },
+  meeting: { label: 'Meeting', color: '#e67e22' },
+  'closed-won': { label: 'Closed Won', color: '#27ae60' },
+  'closed-lost': { label: 'Closed Lost', color: '#e74c3c' },
+};
+
 export const VAULT_CATEGORIES = {
   'api-key': { label: 'API Key', icon: 'key' },
   'credential': { label: 'Credential', icon: 'lock' },

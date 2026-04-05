@@ -5,7 +5,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   Columns3, Shield, BarChart3, Activity,
   ChevronLeft, ChevronRight, Moon, Sun, Search,
-  Download, Users
+  Download, Users, UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { href: '/', icon: Columns3, label: 'Board' },
   { href: '/vault', icon: Shield, label: 'Vault' },
+  { href: '/outreach', icon: UserCheck, label: 'Outreach' },
   { href: '/?view=analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/?view=activity', icon: Activity, label: 'Activity' },
   { href: '/?view=team', icon: Users, label: 'Team' },
@@ -113,11 +114,11 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
         <nav className="flex-1 px-3 space-y-1">
           {NAV_ITEMS.map(item => {
             const itemView = item.href.includes('view=') ? item.href.split('view=')[1] : null;
-            const isActive = item.href === '/vault'
-              ? pathname === '/vault'
-              : itemView
-                ? pathname === '/' && currentView === itemView
-                : pathname === '/' && !currentView;
+            const isActive = itemView
+              ? pathname === '/' && currentView === itemView
+              : item.href === '/'
+                ? pathname === '/' && !currentView
+                : pathname === item.href;
 
             return (
               <NavItemWithTooltip key={item.label} collapsed={collapsed} label={item.label}>

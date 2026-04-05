@@ -1,4 +1,4 @@
-import { Board, Column, Card, VaultEntry, ActivityEntry, TeamMember, DEFAULT_MEMBERS } from '@/types';
+import { Board, Column, Card, VaultEntry, ActivityEntry, TeamMember, Contact, DEFAULT_MEMBERS } from '@/types';
 import { supabase } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -284,6 +284,65 @@ export async function saveMembers(members: TeamMember[]): Promise<void> {
     );
     if (error) console.error('Failed to save members:', error.message);
   }
+}
+
+// ── Contacts ───────────────────────────────────────────
+
+export async function loadContacts(): Promise<Contact[]> {
+  const { data, error } = await supabase
+    .from('contacts')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) console.error('Failed to load contacts:', error.message);
+  return (data || []).map(dbContactToContact);
+}
+
+export async function saveContact(contact: Contact): Promise<void> {
+  const { error } = await supabase.from('contacts').upsert(contactToDb(contact));
+  if (error) console.error('Failed to save contact:', error.message);
+}
+
+export async function deleteContact(id: string): Promise<void> {
+  const { error } = await supabase.from('contacts').delete().eq('id', id);
+  if (error) console.error('Failed to delete contact:', error.message);
+}
+
+function dbContactToContact(row: Record<string, unknown>): Contact {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    company: (row.company as string) || '',
+    title: (row.title as string) || '',
+    email: (row.email as string) || '',
+    phone: (row.phone as string) || '',
+    contactType: (row.contact_type as Contact['contactType']) || 'lead',
+    status: (row.status as Contact['status']) || 'lead',
+    lastContacted: (row.last_contacted as string) || null,
+    source: (row.source as string) || '',
+    notes: (row.notes as string) || '',
+    tags: (row.tags as string[]) || [],
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+function contactToDb(c: Contact) {
+  return {
+    id: c.id,
+    name: c.name,
+    company: c.company,
+    title: c.title,
+    email: c.email,
+    phone: c.phone,
+    contact_type: c.contactType,
+    status: c.status,
+    last_contacted: c.lastContacted,
+    source: c.source,
+    notes: c.notes,
+    tags: c.tags,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 // ── Theme (stays in localStorage — per-browser preference) ──
