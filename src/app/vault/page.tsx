@@ -109,7 +109,7 @@ export default function VaultPage() {
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !newEntry.name) return;
+    if (!file) return;
     setUploading(true);
     const fileExt = file.name.split('.').pop();
     const filePath = `${uuidv4()}.${fileExt}`;
@@ -123,9 +123,9 @@ export default function VaultPage() {
     const entry: VaultEntry = {
       id: uuidv4(),
       category: 'file',
-      name: newEntry.name || file.name,
+      name: newEntry.name || file.name.replace(/\.[^/.]+$/, ''),
       value: urlData.publicUrl,
-      description: newEntry.description || `${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      description: `${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
       tags: [...(newEntry.tags || []), fileExt || 'file'],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
