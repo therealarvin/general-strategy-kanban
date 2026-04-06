@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Board, Card, Column, TeamMember, ActivityEntry } from '@/types';
 import { loadBoard, saveBoard, loadMembers, saveMembers, loadTheme, saveTheme, loadActivity, saveActivity, addActivity } from '@/lib/storage';
-import { filterCards, exportBoardAsJSON } from '@/lib/utils';
+import { filterCards, exportBoardAsJSON, isOverdue } from '@/lib/utils';
 import KanbanColumn from '@/components/KanbanColumn';
 import CardModal from '@/components/CardModal';
 import SearchModal from '@/components/SearchModal';
@@ -230,6 +230,12 @@ function BoardContent() {
         onToggleDark={toggleDark}
         onExport={() => exportBoardAsJSON(board)}
         onSearch={() => setShowSearch(true)}
+        badges={{
+          Board: board.columns
+            .filter(c => !c.title.toLowerCase().includes('done'))
+            .flatMap(c => c.cards)
+            .filter(c => !c.archived && isOverdue(c.dueDate)).length || 0,
+        }}
       />
 
       <main className="ml-56 flex flex-col h-screen">

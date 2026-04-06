@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Bot, Send, Loader2, Trash2, Plus, MessageSquare } from 'lucide-react';
+import { Bot, Send, Loader2, Trash2, Plus, MessageSquare, Paperclip, X } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import AuthGuard, { useUserProfile } from '@/components/AuthGuard';
 import { useAuth } from '@/lib/auth';
@@ -42,8 +42,11 @@ function AssistantContent() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; url: string; content?: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -100,8 +103,36 @@ function AssistantContent() {
     loadConversations();
   }
 
+  const TEXT_EXTENSIONS = ['.txt', '.md', '.csv', '.json'];
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.substring(file.name.lastIndexOf('.'));
+      const filePath = `${user.id}/${uuidv4()}${ext}`;
+      const { error } = await supabase.storage.from('vault-files').upload(filePath, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('vault-files').getPublicUrl(filePath);
+      const fileUrl = urlData.publicUrl;
+
+      let content: string | undefined;
+      if (TEXT_EXTENSIONS.includes(ext.toLowerCase())) {
+        content = await file.text();
+      }
+
+      setAttachedFile({ name: file.name, url: fileUrl, content });
+    } catch (err) {
+      console.error('File upload failed:', err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   async function sendMessage() {
-    if (!input.trim() || loading || !user) return;
+    if ((!input.trim() && !attachedFile) || loading || !user) return;
 
     let convId = activeConvId;
     if (!convId) {
@@ -112,10 +143,20 @@ function AssistantContent() {
       setActiveConvId(convId);
     }
 
-    const userMsg: Message = { id: uuidv4(), role: 'user', content: input.trim() };
+    let messageText = input.trim();
+    if (attachedFile) {
+      if (attachedFile.content) {
+        messageText += `\n\n[Attached file: ${attachedFile.name}]\nURL: ${attachedFile.url}\n\nFile contents:\n${attachedFile.content}`;
+      } else {
+        messageText += `\n\n[Attached file: ${attachedFile.name}]\nURL: ${attachedFile.url}`;
+      }
+    }
+
+    const userMsg: Message = { id: uuidv4(), role: 'user', content: messageText };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
+    setAttachedFile(null);
     setLoading(true);
 
     // Save user message
@@ -285,21 +326,52 @@ function AssistantContent() {
           </div>
 
           <div className="border-t border-border px-6 py-3 flex-shrink-0">
-            <div className="max-w-3xl mx-auto flex gap-2">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-                }}
-                placeholder="Tell the assistant what to do..."
-                rows={1}
-                className="resize-none min-h-[40px] max-h-[120px]"
-              />
-              <Button onClick={sendMessage} disabled={loading || !input.trim()} className="self-end">
-                <Send size={16} />
-              </Button>
+            <div className="max-w-3xl mx-auto">
+              {attachedFile && (
+                <div className="mb-2 flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1 text-xs bg-muted border border-border rounded-full px-2.5 py-1 text-muted-foreground">
+                    <Paperclip size={10} />
+                    {attachedFile.name}
+                    <button
+                      onClick={() => setAttachedFile(null)}
+                      className="ml-0.5 hover:text-foreground transition-colors"
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="self-end flex-shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                </Button>
+                <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+                  }}
+                  placeholder="Tell the assistant what to do..."
+                  rows={1}
+                  className="resize-none min-h-[40px] max-h-[120px]"
+                />
+                <Button onClick={sendMessage} disabled={loading || (!input.trim() && !attachedFile)} className="self-end">
+                  <Send size={16} />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

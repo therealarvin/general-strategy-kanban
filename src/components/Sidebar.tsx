@@ -18,6 +18,7 @@ interface SidebarProps {
   onToggleDark: () => void;
   onExport: () => void;
   onSearch: () => void;
+  badges?: Record<string, number>;
 }
 
 const NAV_ITEMS = [
@@ -61,7 +62,7 @@ function NavItemWithTooltip({
   );
 }
 
-function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarProps) {
+function SidebarInner({ darkMode, onToggleDark, onExport, onSearch, badges = {} }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -131,7 +132,7 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
                   variant="ghost"
                   size={collapsed ? 'icon' : 'default'}
                   className={cn(
-                    'w-full rounded-card',
+                    'w-full rounded-card relative',
                     collapsed ? 'justify-center' : 'justify-start gap-3',
                     isActive
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
@@ -147,7 +148,14 @@ function SidebarInner({ darkMode, onToggleDark, onExport, onSearch }: SidebarPro
                   }}
                 >
                   <item.icon size={18} className="flex-shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && <span className="flex-1">{item.label}</span>}
+                  {!collapsed && badges[item.label] ? (
+                    <span className="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-destructive text-white min-w-[18px] text-center">
+                      {badges[item.label]}
+                    </span>
+                  ) : collapsed && badges[item.label] ? (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                  ) : null}
                 </Button>
               </NavItemWithTooltip>
             );
