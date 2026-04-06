@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Bot, Send, Loader2, Trash2, Plus, MessageSquare } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
-import AuthGuard from '@/components/AuthGuard';
+import AuthGuard, { useUserProfile } from '@/components/AuthGuard';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { loadTheme, saveTheme } from '@/lib/storage';
@@ -35,6 +35,7 @@ export default function AssistantPage() {
 
 function AssistantContent() {
   const { user } = useAuth();
+  const profile = useUserProfile();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -130,6 +131,8 @@ function AssistantContent() {
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           userId: user.id,
+          teamMemberId: profile.teamMemberId,
+          teamMemberName: profile.displayName,
         }),
       });
 

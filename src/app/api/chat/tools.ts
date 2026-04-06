@@ -212,6 +212,107 @@ export const tools = [
       },
     },
   },
+  // Board summary
+  {
+    type: 'function' as const,
+    function: {
+      name: 'board_summary',
+      description: 'Returns a comprehensive board overview: total cards, cards per column, overdue items, blocked items, cards by priority, and cards by assignee.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  // Search everything
+  {
+    type: 'function' as const,
+    function: {
+      name: 'search_everything',
+      description: 'Search across cards, contacts, vault entries, and reminders. Returns grouped results with type labels.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query string' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  // Vault update
+  {
+    type: 'function' as const,
+    function: {
+      name: 'update_vault_entry',
+      description: 'Update an existing vault entry',
+      parameters: {
+        type: 'object',
+        properties: {
+          entry_id: { type: 'string', description: 'Vault entry ID to update' },
+          name: { type: 'string' },
+          value: { type: 'string' },
+          description: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          category: { type: 'string', enum: ['api-key', 'credential', 'link', 'note', 'server', 'document', 'file'] },
+          hidden: { type: 'boolean' },
+        },
+        required: ['entry_id'],
+      },
+    },
+  },
+  // Vault delete
+  {
+    type: 'function' as const,
+    function: {
+      name: 'delete_vault_entry',
+      description: 'Delete a vault entry',
+      parameters: {
+        type: 'object',
+        properties: {
+          entry_id: { type: 'string', description: 'Vault entry ID to delete' },
+        },
+        required: ['entry_id'],
+      },
+    },
+  },
+  // Activity list
+  {
+    type: 'function' as const,
+    function: {
+      name: 'list_activity',
+      description: 'Returns the last 20 activity entries. Useful for seeing what happened recently.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  // Move card by column name
+  {
+    type: 'function' as const,
+    function: {
+      name: 'move_card',
+      description: 'Move a card to a different column by column name (human-readable title, not ID)',
+      parameters: {
+        type: 'object',
+        properties: {
+          card_id: { type: 'string', description: 'Card ID to move' },
+          target_column_name: { type: 'string', description: 'Target column title (e.g. "In Progress", "Done")' },
+        },
+        required: ['card_id', 'target_column_name'],
+      },
+    },
+  },
+  // Draft outreach message context
+  {
+    type: 'function' as const,
+    function: {
+      name: 'draft_outreach_message',
+      description: 'Fetches contact details and context so the AI can draft an outreach message. Returns contact info for message composition.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'Contact ID to draft message for' },
+          message_type: { type: 'string', enum: ['follow-up', 'introduction', 'meeting-request', 'thank-you'], description: 'Type of message to draft' },
+        },
+        required: ['contact_id', 'message_type'],
+      },
+    },
+  },
 ];
 
 // ── Tool Execution ──
@@ -231,6 +332,13 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       case 'set_reminder': return await setReminder(args);
       case 'list_reminders': return await listReminders(args);
       case 'complete_reminder': return await completeReminder(args);
+      case 'board_summary': return await boardSummary();
+      case 'search_everything': return await searchEverything(args);
+      case 'update_vault_entry': return await updateVaultEntry(args);
+      case 'delete_vault_entry': return await deleteVaultEntry(args);
+      case 'list_activity': return await listActivity();
+      case 'move_card': return await moveCard(args);
+      case 'draft_outreach_message': return await draftOutreachMessage(args);
       default: return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
   } catch (err) {
@@ -419,4 +527,231 @@ async function completeReminder(args: Record<string, unknown>) {
   const { error } = await supabase.from('reminders').update({ completed: true }).eq('id', args.reminder_id);
   if (error) return JSON.stringify({ error: error.message });
   return JSON.stringify({ success: true });
+}
+
+async function boardSummary() {
+  // Fetch board, columns, cards, and team members in parallel
+  const { data: boards } = await supabase.from('boards').select('*').order('updated_at', { ascending: false }).limit(1).single();
+  if (!boards) return JSON.stringify({ error: 'No board found' });
+
+  const [{ data: columns }, { data: teamMembers }] = await Promise.all([
+    supabase.from('columns').select('*').eq('board_id', boards.id).order('position'),
+    supabase.from('team_members').select('*'),
+  ]);
+
+  const colIds = (columns || []).map(c => c.id);
+  const { data: cards } = colIds.length > 0
+    ? await supabase.from('cards').select('*').in('column_id', colIds).order('position')
+    : { data: [] };
+
+  const allCards = cards || [];
+  const allColumns = columns || [];
+  const members = teamMembers || [];
+
+  // Find the "Done" column (case-insensitive)
+  const doneColumn = allColumns.find(c => c.title.toLowerCase() === 'done');
+  const doneColId = doneColumn?.id;
+
+  // Active cards = not archived and not in Done
+  const activeCards = allCards.filter(c => !c.archived && c.column_id !== doneColId);
+
+  // Cards per column
+  const cardsPerColumn: Record<string, number> = {};
+  for (const col of allColumns) {
+    cardsPerColumn[col.title] = allCards.filter(c => c.column_id === col.id && !c.archived).length;
+  }
+
+  // Overdue cards (due_date < now and not in Done and not archived)
+  const now = new Date();
+  const overdueCards = activeCards.filter(c => {
+    if (!c.due_date) return false;
+    return new Date(c.due_date) < now;
+  }).map(c => ({ id: c.id, title: c.title, due_date: c.due_date, priority: c.priority }));
+
+  // Blocked cards (has dependencies that are not completed / not in Done)
+  const cardById = new Map(allCards.map(c => [c.id, c]));
+  const blockedCards = activeCards.filter(c => {
+    const deps = c.dependencies || [];
+    if (deps.length === 0) return false;
+    return deps.some((depId: string) => {
+      const dep = cardById.get(depId);
+      // Blocked if dependency doesn't exist, is not archived, or is not in Done
+      return !dep || (dep.column_id !== doneColId && !dep.archived);
+    });
+  }).map(c => ({ id: c.id, title: c.title, blocking_deps: c.dependencies }));
+
+  // By priority
+  const byPriority: Record<string, number> = {};
+  for (const c of activeCards) {
+    const p = c.priority || 'none';
+    byPriority[p] = (byPriority[p] || 0) + 1;
+  }
+
+  // By assignee
+  const byAssignee: Record<string, number> = {};
+  const memberMap = new Map(members.map(m => [m.id, m.name]));
+  for (const c of activeCards) {
+    const assignees = c.assignees || [];
+    if (assignees.length === 0) {
+      byAssignee['Unassigned'] = (byAssignee['Unassigned'] || 0) + 1;
+    } else {
+      for (const aid of assignees as string[]) {
+        const name = memberMap.get(aid) || aid;
+        byAssignee[name] = (byAssignee[name] || 0) + 1;
+      }
+    }
+  }
+
+  const summary = {
+    board_name: boards.name,
+    total_active_cards: activeCards.length,
+    total_all_cards: allCards.filter(c => !c.archived).length,
+    cards_per_column: cardsPerColumn,
+    overdue_cards: overdueCards,
+    overdue_count: overdueCards.length,
+    blocked_cards: blockedCards,
+    blocked_count: blockedCards.length,
+    by_priority: byPriority,
+    by_assignee: byAssignee,
+  };
+
+  return JSON.stringify(summary);
+}
+
+async function searchEverything(args: Record<string, unknown>) {
+  const query = args.query as string;
+  const pattern = `%${query}%`;
+
+  const [cardsRes, contactsRes, vaultRes, remindersRes] = await Promise.all([
+    supabase.from('cards').select('id, title, description, priority, column_id, due_date')
+      .or(`title.ilike.${pattern},description.ilike.${pattern}`),
+    supabase.from('contacts').select('id, name, company, email, notes')
+      .or(`name.ilike.${pattern},company.ilike.${pattern},email.ilike.${pattern},notes.ilike.${pattern}`),
+    supabase.from('vault_entries').select('id, name, description, value, hidden, category')
+      .or(`name.ilike.${pattern},description.ilike.${pattern},value.ilike.${pattern}`),
+    supabase.from('reminders').select('id, title, description, due_date, completed')
+      .or(`title.ilike.${pattern},description.ilike.${pattern}`),
+  ]);
+
+  // Mask hidden vault values
+  const vaultResults = (vaultRes.data || []).map(e => ({
+    ...e,
+    value: e.hidden ? '[HIDDEN]' : e.value,
+  }));
+
+  const results = {
+    cards: cardsRes.data || [],
+    contacts: contactsRes.data || [],
+    vault_entries: vaultResults,
+    reminders: remindersRes.data || [],
+    total_results: (cardsRes.data?.length || 0) + (contactsRes.data?.length || 0) + (vaultRes.data?.length || 0) + (remindersRes.data?.length || 0),
+  };
+
+  return JSON.stringify(results);
+}
+
+async function updateVaultEntry(args: Record<string, unknown>) {
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (args.name !== undefined) updates.name = args.name;
+  if (args.value !== undefined) updates.value = args.value;
+  if (args.description !== undefined) updates.description = args.description;
+  if (args.tags !== undefined) updates.tags = args.tags;
+  if (args.category !== undefined) updates.category = args.category;
+  if (args.hidden !== undefined) updates.hidden = args.hidden;
+
+  const { error } = await supabase.from('vault_entries').update(updates).eq('id', args.entry_id);
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify({ success: true });
+}
+
+async function deleteVaultEntry(args: Record<string, unknown>) {
+  const { error } = await supabase.from('vault_entries').delete().eq('id', args.entry_id);
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify({ success: true });
+}
+
+async function listActivity() {
+  const { data, error } = await supabase.from('activity_entries').select('*').order('created_at', { ascending: false }).limit(20);
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify(data || []);
+}
+
+async function moveCard(args: Record<string, unknown>) {
+  const cardId = args.card_id as string;
+  const targetName = args.target_column_name as string;
+
+  // Look up the column by title (case-insensitive)
+  const { data: columns } = await supabase.from('columns').select('*');
+  const targetCol = (columns || []).find(c => c.title.toLowerCase() === targetName.toLowerCase());
+  if (!targetCol) {
+    const available = (columns || []).map(c => c.title).join(', ');
+    return JSON.stringify({ error: `Column "${targetName}" not found. Available columns: ${available}` });
+  }
+
+  // Get the card title for activity logging
+  const { data: card } = await supabase.from('cards').select('title, column_id').eq('id', cardId).single();
+  if (!card) return JSON.stringify({ error: 'Card not found' });
+
+  // Find the source column name
+  const sourceCol = (columns || []).find(c => c.id === card.column_id);
+  const sourceName = sourceCol?.title || 'Unknown';
+
+  // Get max position in target column
+  const { data: maxPos } = await supabase.from('cards').select('position').eq('column_id', targetCol.id).order('position', { ascending: false }).limit(1);
+  const position = maxPos && maxPos.length > 0 ? (maxPos[0].position + 1) : 0;
+
+  // Move the card
+  const { error } = await supabase.from('cards').update({
+    column_id: targetCol.id,
+    position,
+    updated_at: new Date().toISOString(),
+  }).eq('id', cardId);
+  if (error) return JSON.stringify({ error: error.message });
+
+  // Log activity
+  await supabase.from('activity_entries').insert({
+    action: 'moved',
+    card_title: card.title,
+    details: `Moved from "${sourceName}" to "${targetCol.title}"`,
+    author: 'AI Assistant',
+  });
+
+  return JSON.stringify({ success: true, moved_from: sourceName, moved_to: targetCol.title });
+}
+
+async function draftOutreachMessage(args: Record<string, unknown>) {
+  const contactId = args.contact_id as string;
+  const messageType = args.message_type as string;
+
+  const { data: contact, error } = await supabase.from('contacts').select('*').eq('id', contactId).single();
+  if (error || !contact) return JSON.stringify({ error: 'Contact not found' });
+
+  // Also fetch any related reminders for context
+  const { data: reminders } = await supabase.from('reminders').select('*').eq('related_contact_id', contactId).eq('completed', false);
+
+  // Fetch recent activity mentioning this contact's name
+  const { data: activity } = await supabase.from('activity_entries').select('*')
+    .ilike('card_title', `%${contact.name}%`)
+    .order('created_at', { ascending: false }).limit(5);
+
+  return JSON.stringify({
+    message_type: messageType,
+    contact: {
+      name: contact.name,
+      company: contact.company,
+      title: contact.title,
+      email: contact.email,
+      phone: contact.phone,
+      contact_type: contact.contact_type,
+      status: contact.status,
+      source: contact.source,
+      notes: contact.notes,
+      tags: contact.tags,
+      last_contacted: contact.last_contacted,
+      created_at: contact.created_at,
+    },
+    upcoming_reminders: reminders || [],
+    recent_activity: activity || [],
+    instruction: `Use the above contact details and context to draft a ${messageType} message. Be professional and personalized based on the available information.`,
+  });
 }

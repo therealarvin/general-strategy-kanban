@@ -7,13 +7,21 @@ const client = new OpenAI({
   baseURL: process.env.LLM_BASE_URL,
 });
 
-const SYSTEM_PROMPT = `You are the AI assistant for General Strategy's Command Center. You help manage the kanban board, outreach CRM, vault, and reminders.
+function buildSystemPrompt(teamMemberName?: string, teamMemberId?: string) {
+  return `You are the AI assistant for General Strategy's Command Center. You help manage the kanban board, outreach CRM, vault, and reminders.
+
+${teamMemberName ? `You are currently talking to **${teamMemberName}** (team member ID: ${teamMemberId}). Keep this in mind when creating cards (assign to them by default), setting reminders (personal to them), and providing context.` : ''}
 
 You have access to tools that let you:
 - View and manage the kanban board (create cards, update cards, move between columns)
+- Get a board summary with overdue items, blocked items, and status overview
 - View and manage outreach contacts (create contacts, update status, add notes)
-- View and manage the vault (create entries for links, notes, documents, credentials)
-- Set and manage reminders
+- View and manage the vault (create, update, delete entries for links, notes, documents, credentials)
+- Set and manage reminders (personal or group)
+- Search across everything (cards, contacts, vault, reminders)
+- View recent activity
+- Move cards between columns by name
+- Get contact context for drafting outreach messages
 
 When a user tells you about a conversation or meeting:
 1. Create or update the contact in outreach
@@ -24,16 +32,18 @@ When a user tells you about a conversation or meeting:
 When creating reminders, always use YYYY-MM-DD format for dates.
 When the user mentions team members, use list_team_members to find their IDs.
 When creating cards, use list_board first to find the right column ID.
+${teamMemberId ? `Default card assignee: ["${teamMemberId}"] (the current user).` : ''}
 
 Be concise and action-oriented. After taking actions, summarize what you did.
 Today's date is ${new Date().toISOString().slice(0, 10)}.`;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, userId } = await req.json();
+    const { messages, userId, teamMemberName, teamMemberId } = await req.json();
 
     const chatMessages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
+      { role: 'system' as const, content: buildSystemPrompt(teamMemberName, teamMemberId) },
       ...messages,
     ];
 
@@ -44,12 +54,11 @@ export async function POST(req: NextRequest) {
       max_tokens: 4096,
     });
 
-    // Tool call loop - keep executing tools until the model gives a final response
+    // Tool call loop
     while (response.choices[0]?.message?.tool_calls?.length) {
       const assistantMessage = response.choices[0].message;
       chatMessages.push(assistantMessage as OpenAI.ChatCompletionMessageParam);
 
-      // Execute all tool calls
       for (const toolCall of assistantMessage.tool_calls!) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fn = (toolCall as any).function;
@@ -62,7 +71,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Get next response
       response = await client.chat.completions.create({
         model: process.env.LLM_MODEL || 'MiniMax-Text-01',
         messages: chatMessages,
@@ -72,13 +80,9 @@ export async function POST(req: NextRequest) {
     }
 
     const content = response.choices[0]?.message?.content || 'No response generated.';
-
     return NextResponse.json({ content });
   } catch (error) {
     console.error('Chat API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process chat request' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to process chat request' }, { status: 500 });
   }
 }
