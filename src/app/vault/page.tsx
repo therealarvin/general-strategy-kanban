@@ -116,6 +116,7 @@ export default function VaultPage() {
     const { error } = await supabase.storage.from('vault-files').upload(filePath, file);
     if (error) {
       console.error('Upload failed:', error.message);
+      alert(`Upload failed: ${error.message}`);
       setUploading(false);
       return;
     }
